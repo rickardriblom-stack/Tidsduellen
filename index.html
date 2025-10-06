@@ -151,17 +151,17 @@
         
         // ***********************************************************************************
         // !!! VIKTIGT: KLISTRA IN DIN PERSONLIGA firebaseConfig HÄR !!!
-        // Detta är den publika konfigurationen. Byt ut den mot din egen.
-        // Gå till Firebase > Projektinställningar > Allmänt > Lägg till app > Web
+        // Klistra in hela objektet från din Firebase Project Settings > General > Web App
         // ***********************************************************************************
         const firebaseConfig = {
-            apiKey: "AIzaSyDP41e97gWnU_Yy2d2g3rS6p0Yq8L5Z3B9",
-            authDomain: "public-canvas.firebaseapp.com",
-            projectId: "public-canvas", 
-            storageBucket: "public-canvas.appspot.com",
-            messagingSenderId: "1074744040989",
-            appId: "1:1074744040989:web:355c3c13e5518b52f1b0a8"
-        }; 
+  apiKey: "AIzaSyAmsrwDhNmVZsmYmnGEmA9c7nznBTj1G7M",
+  authDomain: "tidsduellen.firebaseapp.com",
+  projectId: "tidsduellen",
+  storageBucket: "tidsduellen.firebasestorage.app",
+  messagingSenderId: "397732128249",
+  appId: "1:397732128249:web:f27ddc610c300b4b504928",
+  measurementId: "G-THJVN8S9EN"
+};
         const initialAuthToken = null; 
         
         // Simulerar ett unikt ID för att komma runt API-nyckelkravet.
@@ -234,7 +234,8 @@
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                authStatus.textContent = `KRITISKT FEL: Firebase-initialiseringen misslyckades. (${error.message || 'Okänt fel'})`;
+                // Extra instruktion om att byta konfiguration om det misslyckas.
+                authStatus.textContent = `KRITISKT FEL: Anslutningsfel. Har du klistrat in din PERSONLIGA firebaseConfig? (${error.message || 'Okänt fel'})`;
             }
         }
         
