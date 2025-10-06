@@ -442,7 +442,8 @@
             const gameRef = getGameRef(docId);
             
             unsubscribe = gameRef.onSnapshot((docSnap) => {
-                if (docSnap.exists()) {
+                // KORRIGERING HÄR: Använd .data() för att hämta datan
+                if (docSnap.exists) { 
                     const gameData = docSnap.data();
                     
                     if (playerRole === null) {
@@ -516,7 +517,8 @@
                 await db.runTransaction(async (transaction) => {
                     const gameDoc = await transaction.get(gameRef);
 
-                    if (!gameDoc.exists()) throw "Spelet existerar inte.";
+                    // KORRIGERING HÄR: Använd .exists på transaktionsresultatet
+                    if (!gameDoc.exists) throw "Spelet existerar inte.";
                     const data = gameDoc.data();
                     if (data.player2Id !== null) throw "Spelet är fullt.";
                     if (data.player1Id === userId) throw "Du är redan i spelet som Spelare 1.";
@@ -654,8 +656,9 @@
                     const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
                     
                     if (isGameActive) {
+                        // KORRIGERING: Använd get() och kontrollera existens.
                         const gameDoc = await getGameRef().get();
-                        if (gameDoc.exists() && playerRole === 'P1') {
+                        if (gameDoc.exists && playerRole === 'P1') {
                             await startNextRoundOrMatch(gameDoc.data());
                         }
                     } else {
@@ -666,7 +669,10 @@
                 joinButton.addEventListener('click', joinExistingGame);
 
                 const handlePlayerClick = async (playerNum) => {
+                    // KORRIGERING: Använd get() och kontrollera existens.
                     const gameDoc = await getGameRef().get();
+                    if (!gameDoc.exists) return;
+
                     const gameData = gameDoc.data();
                     
                     if (gameData.status !== 'WAITING_FOR_CLICKS') return;
