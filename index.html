@@ -362,9 +362,9 @@
                     waitingForPlayer.classList.remove('hidden');
 
                     if (gameData.playerIds[0] === userId) {
-                        // Spelare 1 kan starta så fort minst 1 spelare är ansluten (för testkörning)
+                        // FIX: Tillåt ensamspel direkt
                         startNextRoundButton.textContent = `STARTA OMGÅNG 1 av ${maxRounds}`;
-                        startNextRoundButton.disabled = gameData.playerIds.length < 1; 
+                        startNextRoundButton.disabled = false; 
                     } else {
                          startNextRoundButton.textContent = `Väntar på skaparen att starta...`;
                          startNextRoundButton.disabled = true;
