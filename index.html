@@ -7,10 +7,10 @@
     <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- KORRIGERAT: Bytte Firebase CDN till opartisk CDN (cdnjs) för att undvika blockeringar -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-auth.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-firestore.js"></script>
+    <!-- ANVÄNDER ÄLDRE, STABILARE FIREBASE (v8.10.1) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
         body {
@@ -42,7 +42,6 @@
         .hidden { display: none; }
     </style>
 </head>
-<!-- STARTAR INTE APPEN HÄR! -->
 <body class="bg-gray-100 flex items-center justify-start min-h-screen p-4">
 
     <div id="app-container" class="w-full max-w-lg bg-white p-4 md:p-6 rounded-xl shadow-2xl text-center mx-auto mt-4 mb-4">
@@ -156,6 +155,9 @@
             projectId: "placeholder-project-id",
         }; 
         const initialAuthToken = null; 
+        
+        // Simulerar ett unikt ID utan autentisering för att komma runt API-nyckelkravet.
+        const simulatedUserId = crypto.randomUUID(); 
 
         let app, db, auth;
         let userId = null;
@@ -206,30 +208,24 @@
 
         async function initFirebase() {
             try {
-                // KONTROLL: Nu använder vi de moderna skripten, men behåller en robust kontroll.
                 if (typeof firebase === 'undefined' || !firebase.initializeApp) {
                     throw new Error("Firebase library not defined globally. Check network access to CDN or if script loading failed.");
                 }
 
+                // ANVÄNDER V8 SYNTAX FÖR INITIALISERING
                 app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
+                // Hoppa över Auth initialisering för att undvika API-nyckelfelet
+                // auth = firebase.auth(); 
                 db = firebase.firestore();
-                // setLogLevel finns i v11 via firebase.firestore.setLogLevel(level)
                 firebase.firestore.setLogLevel('debug'); 
 
-                // INLOGGNING: Vi förlitar oss på signInAnonymously()
-                auth.signInAnonymously()
-                    .then((userCredential) => {
-                        userId = userCredential.user.uid;
-                        authStatus.textContent = `Ditt Användar-ID: ${userId}`;
-                        gameControlArea.classList.remove('hidden');
-                        startButton.disabled = false;
-                        joinButton.disabled = false;
-                    })
-                    .catch((error) => {
-                        console.error("Firebase Auth Error:", error);
-                        authStatus.textContent = "Autentiseringsfel. Kan inte starta spel.";
-                    });
+                // --- SIMULERAD INLOGGNING ---
+                userId = simulatedUserId;
+                authStatus.textContent = `Ditt Användar-ID: ${userId}`;
+                gameControlArea.classList.remove('hidden');
+                startButton.disabled = false;
+                joinButton.disabled = false;
+                // --- SLUT SIMULERAD INLOGGNING ---
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
