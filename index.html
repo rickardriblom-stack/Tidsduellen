@@ -288,15 +288,17 @@
                 const games = [];
                 snapshot.forEach(doc => {
                     const game = doc.data();
-                    // Visa inte spelet om det är startat av samma användare
-                    if (game.player1Id !== userId) {
+                    // FILTER: 1. Visa INTE spelet om det startats av samma användare (userId)
+                    // FILTER: 2. Visa INTE spelet om player1Id saknas (även om det inte borde)
+                    if (game.player1Id !== userId && game.player1Id) {
                         games.push(game);
                     }
                 });
                 renderAvailableGames(games);
             }, error => {
                 console.error("Error listening for available games:", error);
-                availableGamesList.innerHTML = `<p class="text-xs text-red-500">Kunde inte hämta spel: ${error.message}</p>`;
+                // Visar inte felet på skärmen, utan bara att inga spel kunde laddas.
+                availableGamesList.innerHTML = `<p class="text-xs text-red-500">Kunde inte hämta spel...</p>`;
             });
         }
 
@@ -734,16 +736,22 @@
             try {
                 
                 startButton.addEventListener('click', async () => {
-                    const gameDoc = await getGameRef().get();
-                    const gameData = gameDoc.data();
-                    
+                    // Vi måste hämta spelet igen för att få aktuell status/data
+                    let gameData = null;
+                    if (gameId) {
+                         const gameDoc = await getGameRef().get();
+                         if (gameDoc.exists) {
+                            gameData = gameDoc.data();
+                         }
+                    }
+
                     if (gameData && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
-                        // KORRIGERING: Kontrollera status direkt i gameData
-                        if (gameDoc.exists && playerRole === 'P1') {
+                        // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
+                        if (playerRole === 'P1') {
                             await startNextRoundOrMatch(gameData);
                         }
                     } else {
-                        // Starta nytt spel om inget aktivt spel finns
+                        // STARTA NYTT SPEL
                         await createNewGame();
                     }
                 });
