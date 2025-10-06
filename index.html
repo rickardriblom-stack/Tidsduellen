@@ -504,6 +504,9 @@
 
         /** Skapar ett nytt spel (endast P1). */
         async function createNewGame() {
+            // FIX: Rensar gameId vid start av nytt spel
+            resetGameId(); 
+            
             const newGameCode = generateGameCode();
             const gameRef = getGameRef(newGameCode);
 
@@ -654,6 +657,13 @@
             }
         }
 
+        /** Nollställer endast gameId lokalt. Används vid start av nytt spel/omgång. */
+        function resetGameId() {
+            if (unsubscribe) unsubscribe();
+            gameId = null;
+            playerRole = null;
+        }
+
         /** Återställer applikationen till initialt läge. */
         function resetLocalState() {
             if (unsubscribe) unsubscribe();
@@ -698,11 +708,11 @@
                         if (playerRole === 'P1') {
                             await startNextRoundOrMatch(gameData);
                         }
-                    } else if (!gameId) { // Om det inte finns något aktivt spel, starta nytt
-                        // STARTA NYTT SPEL
+                    } else if (!gameId) { 
+                        // STARTA NYTT SPEL (När gameId är null - dvs. i SETUP-läget)
                         await createNewGame();
                     }
-                    // Annars (gameId finns men status är SETUP/WAITING_FOR_CLICKS), gör ingenting (knappen är disabled/väntar)
+                    // Annars (gameId finns och status är SETUP/WAITING_FOR_CLICKS), gör ingenting
                 });
 
                 // KORRIGERING: Anrop joinExistingGame utan argument, som då hämtar från inputfältet
@@ -750,7 +760,7 @@
 
         });
         
-        // Den globala onload-funktionen som garanterar att allt är laddat 
+        // Den globala onload-funktionen som garanterar att allt är laddat
         window.onload = function() {
             // Vi kallar den nya kontrollfunktionen
             initApp();
