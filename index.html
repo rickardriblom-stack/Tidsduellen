@@ -632,7 +632,8 @@
 
         // KORRIGERAT: Använd window.onload för att garantera att alla externa skript (Firebase) har laddats.
         window.onload = function() {
-            initFirebase();
+            // Lägg till en timeout för att vara 100% säker på att externa skript har exekverats
+            setTimeout(initFirebase, 50); 
             
             startButton.addEventListener('click', async () => {
                 const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
