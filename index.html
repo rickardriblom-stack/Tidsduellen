@@ -69,15 +69,15 @@
                 </button>
             </div>
 
-            <!-- Borttagen sektion för klickbara, tillgängliga spel -->
-            <div id="available-games-area" class="text-left hidden">
-                <h3 class="text-sm font-bold text-gray-600 mb-2">Aktiva spel att gå med i:</h3>
+            <!-- NY SEKTION FÖR TILLGÄNGLIGA SPEL -->
+            <div id="available-games-area" class="text-left">
+                <h3 class="text-sm font-bold text-gray-700 mb-2">Aktiva spel att gå med i:</h3>
                 <div id="available-games-list" class="space-y-2">
                     <!-- Spelknappar renderas här -->
-                    <p class="text-xs text-gray-400">Inga spel hittades...</p>
+                    <p class="text-xs text-gray-400">Hämtar...</p>
                 </div>
             </div>
-            <!-- Slut borttagen sektion -->
+            <!-- SLUT NY SEKTION -->
         </div>
 
         <!-- --- HUVUD SPELYTA (GAME) --- -->
@@ -97,16 +97,9 @@
             <!-- Poängtavla -->
             <div id="scoreboard-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 border-gray-300 bg-gray-50">
                 <h3 class="text-lg font-bold mb-2 text-gray-700">Total Felmarginal (Lägst är Bäst)</h3>
-
-                <div class="flex gap-4 text-center">
-                    <div class="w-1/2 p-2 rounded-lg border border-red-300">
-                        <p class="text-sm text-red-700 font-semibold">P1 Röd</p>
-                        <p id="p1-total-error" class="text-xl font-mono font-bold text-red-600">0.00 s</p>
-                    </div>
-                    <div class="w-1/2 p-2 rounded-lg border border-blue-300">
-                        <p class="text-sm text-blue-700 font-semibold">P2 Blå</p>
-                        <p id="p2-total-error" class="text-xl font-mono font-bold text-blue-600">0.00 s</p>
-                    </div>
+                <!-- Resultat visas här i stället för hårkodade P1/P2 -->
+                <div id="total-scoreboard" class="flex flex-col gap-2 text-sm text-gray-700">
+                    <p class="text-center text-xs text-gray-500">Resultat visas när matchen är slut.</p>
                 </div>
             </div>
 
@@ -114,22 +107,8 @@
             <div id="result-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 hidden">
                 <h3 class="text-xl font-bold mb-3 text-gray-800">Resultat Omgång</h3>
 
-                <div class="flex gap-3 text-sm">
-                    <!-- Spelare 1 Resultat -->
-                    <div class="w-1/2 p-2 rounded-lg border-2 border-red-400 bg-red-50">
-                        <h4 class="font-bold text-red-700">Spelare 1</h4>
-                        <p class="text-xs">Tid: <strong id="res-actual-p1" class="float-right font-mono">--</strong></p>
-                        <div class="h-px bg-red-300 my-1"></div>
-                        <p class="font-bold">Skillnad: <strong id="res-deviation-p1" class="float-right font-mono text-base text-red-600">--</strong></p>
-                    </div>
-
-                    <!-- Spelare 2 Resultat -->
-                    <div class="w-1/2 p-2 rounded-lg border-2 border-blue-400 bg-blue-50">
-                        <h4 class="font-bold text-blue-700">Spelare 2</h4>
-                        <p class="text-xs">Tid: <strong id="res-actual-p2" class="float-right font-mono">--</strong></p>
-                        <div class="h-px bg-blue-300 my-1"></div>
-                        <p class="font-bold">Skillnad: <strong id="res-deviation-p2" class="float-right font-mono text-base text-blue-600">--</strong></p>
-                    </div>
+                <div id="round-results-display" class="flex flex-wrap gap-3 justify-center">
+                    <!-- Spelresultat renderas här -->
                 </div>
 
                 <p id="round-winner-status" class="text-lg font-extrabold mt-3 p-2 rounded-lg bg-yellow-100 text-yellow-800"></p>
@@ -144,8 +123,8 @@
             <!-- Interaktionsknappar -->
             <div class="space-y-3 mt-4">
                 <div class="flex gap-3">
-                    <button id="wait-button-p1" class="btn-base btn-p1 w-1/2" disabled> P1 Tryck NU! </button>
-                    <button id="wait-button-p2" class="btn-base btn-p2 w-1/2" disabled> P2 Tryck NU! </button>
+                    <!-- FIX: Visa en universell knapp för den egna spelaren -->
+                    <button id="multi-wait-button" class="btn-base btn-p2 w-full" disabled> Tryck NU! </button>
                 </div>
                 <!-- FIX: Nytt ID för att separera från SETUP-knappen i den första kontrollen -->
                 <button id="start-next-round-button" class="btn-base btn-start w-full"> STARTA OMGÅNG </button>
@@ -176,19 +155,23 @@
             const initialAuthToken = null; 
             
             // Simulerar ett unikt ID för att komma runt API-nyckelkravet.
-            const simulatedUserId = crypto.randomUUID(); 
+            // Använder localStorage för att spara ett konstant ID per användare/webbläsare
+            const storedUserId = localStorage.getItem('multiUserId');
+            const simulatedUserId = storedUserId || crypto.randomUUID();
+            if (!storedUserId) localStorage.setItem('multiUserId', simulatedUserId);
+
 
             let app, db, auth;
-            let userId = null;
+            let userId = simulatedUserId; // Använd det sparade/genererade ID:t
             let gameId = null;
-            let playerRole = null;
+            let playerRole = null; // Ej strikt nödvändigt med flera spelare, men behålls för vissa UI-kontroller
+            let playerIndex = -1; // Det här är viktigt: Spelarens index i playerIds-arrayen
 
             // Globala elementreferenser
             const authStatus = document.getElementById('auth-status');
             const gameControlArea = document.getElementById('game-control-area');
             const startSetupButton = document.getElementById('start-button'); // Knappen i SETUP-läget
             const startNextRoundButton = document.getElementById('start-next-round-button'); // Knappen i GAME-läget
-            
             const joinGameCode = document.getElementById('join-game-code');
             const joinButton = document.getElementById('join-button');
             const gameCodeDisplay = document.getElementById('game-code-display');
@@ -196,22 +179,14 @@
             const roundCounter = document.getElementById('round-counter');
             const targetDisplay = document.getElementById('target-display');
             const targetTimeText = document.getElementById('target-time');
-            const waitButtonP1 = document.getElementById('wait-button-p1');
-            const waitButtonP2 = document.getElementById('wait-button-p2');
+            const multiWaitButton = document.getElementById('multi-wait-button'); // Universell klickknapp
             const resultArea = document.getElementById('result-area');
             const roundWinnerStatus = document.getElementById('round-winner-status');
-            const p1TotalErrorDisplay = document.getElementById('p1-total-error');
-            const p2TotalErrorDisplay = document.getElementById('p2-total-error');
-            const finalResultArea = document.getElementById('final-result-area');
-            const finalWinnerStatus = document.getElementById('final-winner-status');
-            const mainGameArea = document.getElementById('main-game-area');
-            const availableGamesList = document.getElementById('available-games-list'); // Ny referens
+            const totalScoreboard = document.getElementById('total-scoreboard'); // Nytt: För total poängtavla
+            const roundResultsDisplay = document.getElementById('round-results-display'); // Nytt: För resultat per omgång
+            const availableGamesList = document.getElementById('available-games-list'); // Referens för listan
 
-            // Per-omgång resultat element
-            const resActualP1 = document.getElementById('res-actual-p1');
-            const resDeviationP1 = document.getElementById('res-deviation-p1');
-            const resActualP2 = document.getElementById('res-actual-p2');
-            const resDeviationP2 = document.getElementById('res-deviation-p2');
+            // Per-omgång resultat element (behövs inte längre, renderas dynamiskt)
             
             // Spelets konstanter
             const MS_TO_S = 1000;
@@ -225,6 +200,14 @@
                 }
                 // Sparar i rotnivån 'games/{gameId}'
                 return db.collection('games').doc(id); 
+            }
+            
+            function getGamesCollection() {
+                if (!db || !db.collection) {
+                    throw new Error("Firestore instance (db) is not initialized.");
+                }
+                // Hämta alla spel i rotnivån
+                return db.collection('games');
             }
 
             // KORRIGERAD: Genererar en 3-siffrig kod (000-999)
@@ -245,12 +228,13 @@
                     firebase.firestore.setLogLevel('debug'); 
 
                     // --- SIMULERAD INLOGGNING ---
-                    userId = simulatedUserId;
-                    authStatus.textContent = `Ditt Användar-ID: ${userId}`;
+                    authStatus.textContent = `Ditt Användar-ID: ${userId.substring(0, 8)}...`;
                     gameControlArea.classList.remove('hidden');
                     startSetupButton.disabled = false;
                     joinButton.disabled = false;
                     
+                    // Starta lyssnare för aktiva spel direkt efter initiering
+                    listenForAvailableGames();
                     // --- SLUT SIMULERAD INLOGGNING ---
 
                 } catch (error) {
@@ -269,6 +253,53 @@
                     console.error("Firebase library not defined after aggressive check.");
                 }
             }
+
+            // --- NY: FUNKTION FÖR ATT LYSSNA PÅ TILLGÄNGLIGA SPEL ---
+
+            let unsubscribeAvailableGames = null;
+
+            function listenForAvailableGames() {
+                if (unsubscribeAvailableGames) unsubscribeAvailableGames();
+
+                // Hämtar spel som är i SETUP och där vår ID inte finns (så att vi kan gå med)
+                const gamesRef = getGamesCollection().where('status', '==', 'SETUP');
+                
+                unsubscribeAvailableGames = gamesRef.onSnapshot((snapshot) => {
+                    renderAvailableGames(snapshot.docs);
+                }, (error) => {
+                    console.error("Error fetching available games:", error);
+                });
+            }
+
+            function renderAvailableGames(gameDocs) {
+                let html = '';
+                let gamesFound = 0;
+
+                gameDocs.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // Filtrera bort spel du redan är med i
+                    if (data.playerIds && data.playerIds.includes(userId)) return;
+
+                    const playerCount = data.playerIds ? data.playerIds.length : 0;
+
+                    html += `
+                        <button onclick="joinExistingGame('${data.gameCode}')" 
+                            class="btn-base btn-p2 w-full text-sm py-2 px-3 justify-between flex items-center bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-400">
+                            <span>Spelkod: <strong>${data.gameCode}</strong></span>
+                            <span>Spelare: ${playerCount} anslutna</span>
+                        </button>
+                    `;
+                    gamesFound++;
+                });
+
+                if (gamesFound === 0) {
+                    html = '<p class="text-xs text-gray-400">Inga aktiva spel hittades. Starta ett nytt!</p>';
+                }
+                
+                availableGamesList.innerHTML = html;
+            }
+
 
             // --- SPELHANTERING OCH DATABASFUNKTIONER ---
 
@@ -302,7 +333,7 @@
 
             /** Uppdaterar UI baserat på spelarroll och spelstatus. */
             function updateUI(gameData) {
-                // Huvud UI
+                // Dölj SETUP-vyn och visa GAME-vyn
                 gameControlArea.classList.add('hidden');
                 mainGameArea.classList.remove('hidden');
                 
@@ -317,8 +348,6 @@
 
                 // Omgångsräknare
                 roundCounter.textContent = `Omgång ${gameData.round} av ${maxRounds}`;
-                p1TotalErrorDisplay.textContent = (gameData.player1TotalError / MS_TO_S).toFixed(2) + ' s';
-                p2TotalErrorDisplay.textContent = (gameData.player2TotalError / MS_TO_S).toFixed(2) + ' s';
                 gameCodeDisplay.textContent = `Spelkod: ${gameData.gameCode}`;
 
 
@@ -329,41 +358,47 @@
                 finalResultArea.classList.add('hidden');
                 
                 // Standardläge för knappar
-                waitButtonP1.disabled = true;
-                waitButtonP2.disabled = true;
-                startNextRoundButton.disabled = true; // Sätt knappen i GAME-läge som inaktiverad
+                multiWaitButton.disabled = true;
+                startNextRoundButton.disabled = true; 
 
                 if (gameData.status === 'SETUP') {
                     targetDisplay.textContent = 'Väntar på motståndare...';
-                    targetTimeText.textContent = gameData.gameCode;
+                    targetTimeText.textContent = `Koden: ${gameData.gameCode}`;
                     waitingForPlayer.classList.remove('hidden');
+
+                    if (gameData.playerIds[0] === userId) {
+                        // Spelare 1 kan starta så fort minst 1 spelare är ansluten (för testkörning)
+                        startNextRoundButton.textContent = `STARTA OMGÅNG 1 av ${maxRounds}`;
+                        startNextRoundButton.disabled = gameData.playerIds.length < 1; 
+                    } else {
+                         startNextRoundButton.textContent = `Väntar på skaparen att starta...`;
+                         startNextRoundButton.disabled = true;
+                    }
+                    
+                    // Uppdatera spelarlista i setup
+                    totalScoreboard.innerHTML = `<p class="font-bold">Anslutna spelare: ${gameData.playerIds.length}</p>`;
+                    totalScoreboard.classList.remove('hidden');
                     
                 } else if (gameData.status === 'WAITING_FOR_CLICKS') {
                     waitingForPlayer.classList.add('hidden');
                     targetDisplay.textContent = 'Stäng ögonen och räkna! 🧠';
                     targetTimeText.textContent = `${(gameData.targetTimeMs / MS_TO_S).toFixed(2)} s`; 
 
-                    // Knapplogik
-                    if (playerRole === 'P1') {
-                        if (gameData.player1ClickTime === 0) {
-                            waitButtonP1.disabled = false;
-                            waitButtonP1.textContent = 'P1 Tryck NU!';
+                    const clickIndex = gameData.playerIds.indexOf(userId);
+                    
+                    multiWaitButton.style.display = 'block'; 
+                    
+                    if (clickIndex !== -1) {
+                        if (gameData.clickTimes[clickIndex] === 0) {
+                            multiWaitButton.disabled = false;
+                            multiWaitButton.textContent = 'Tryck NU!';
                         } else {
-                            waitButtonP1.textContent = 'P1 Klickat';
+                            multiWaitButton.textContent = 'Klickat!';
                         }
-                    } else if (playerRole === 'P2') {
-                        if (gameData.player2ClickTime === 0) {
-                            waitButtonP2.disabled = false;
-                            waitButtonP2.textContent = 'P2 Tryck NU!';
-                        } else {
-                            waitButtonP2.textContent = 'P2 Klickat';
-                        }
+                    } else {
+                        // Om spelaren tittar på matchen men inte är med
+                        multiWaitButton.style.display = 'none';
                     }
-
-                    // Uppdatera motståndarens knapptext om de har klickat
-                    if (gameData.player1ClickTime > 0) waitButtonP1.textContent = 'P1 Klickat';
-                    if (gameData.player2ClickTime > 0) waitButtonP2.textContent = 'P2 Klickat';
-
 
                 } else if (gameData.status === 'ROUND_FINISHED') {
                     waitingForPlayer.classList.add('hidden');
@@ -372,22 +407,21 @@
 
                     // Visa resultatdetaljer
                     displayResultDetails(gameData);
+                    displayScoreboard(gameData);
 
-                    // Hantera nästa runda. Endast P1 startar.
-                    if (playerRole === 'P1') {
-                        // Kontrollera om det är sista omgången
+                    // Hantera nästa runda. Endast skaparen (PlayerIds[0]) startar.
+                    if (gameData.playerIds[0] === userId) {
                         const nextRound = gameData.round + 1;
                         startNextRoundButton.disabled = false; // AKTIVERA KNAPPEN
 
                         if (nextRound > maxRounds) {
-                            // FIX: Tydlig text för nästa omgång
                             startNextRoundButton.textContent = 'SPELA IGEN (Reset)';
                         } else {
                             // FIX: Tydlig text för nästa omgång
                             startNextRoundButton.textContent = `STARTA NÄSTA OMGÅNG (${nextRound} av ${maxRounds})`; 
                         }
                     } else {
-                        startNextRoundButton.textContent = `Väntar på P1 att starta nästa runda...`;
+                        startNextRoundButton.textContent = `Väntar på skaparen att starta nästa omgång...`;
                         startNextRoundButton.disabled = true;
                     }
 
@@ -398,13 +432,14 @@
 
                     // Visa slutresultatet
                     displayFinalWinner(gameData);
+                    displayScoreboard(gameData); // Visa final scoreboard
 
-                    // Endast P1 startar om
-                    if (playerRole === 'P1') {
+                    // Endast skaparen startar om
+                    if (gameData.playerIds[0] === userId) {
                         startNextRoundButton.textContent = 'SPELA IGEN (Reset)';
                         startNextRoundButton.disabled = false; // AKTIVERA KNAPPEN
                     } else {
-                        startNextRoundButton.textContent = 'Väntar på P1 att starta ny match...';
+                        startNextRoundButton.textContent = 'Väntar på skaparen att starta ny match...';
                         startNextRoundButton.disabled = true;
                     }
                 }
@@ -413,42 +448,91 @@
             /** Visar det detaljerade resultatet för omgången. */
             function displayResultDetails(gameData) {
                 const targetTimeMs = gameData.targetTimeMs;
+                roundResultsDisplay.innerHTML = ''; // Rensa gamla resultat
+                let closestDeviation = Infinity;
+                let closestPlayerIndex = -1;
 
-                // P1 Resultat
-                const devP1Ms = gameData.player1ClickTime - targetTimeMs;
-                resActualP1.textContent = (gameData.player1ClickTime / MS_TO_S).toFixed(2) + ' s';
-                resDeviationP1.textContent = formatDeviation(devP1Ms, resDeviationP1);
+                // 1. Beräkna avvikelser och hitta vinnare
+                gameData.playerIds.forEach((id, index) => {
+                    const clickTimeMs = gameData.clickTimes[index];
+                    const devMs = clickTimeMs - targetTimeMs;
+                    const absDev = Math.abs(devMs);
+                    
+                    if (absDev < closestDeviation) {
+                        closestDeviation = absDev;
+                        closestPlayerIndex = index;
+                    }
 
-                // P2 Resultat
-                const devP2Ms = gameData.player2ClickTime - targetTimeMs;
-                resActualP2.textContent = (gameData.player2ClickTime / MS_TO_S).toFixed(2) + ' s';
-                resDeviationP2.textContent = formatDeviation(devP2Ms, resDeviationP2);
+                    const playerNumber = index + 1;
+                    const colorClass = index === 0 ? 'border-red-400 bg-red-50' : (index === 1 ? 'border-blue-400 bg-blue-50' : 'border-gray-400 bg-gray-50');
 
-                // Vinnare av omgången
-                const absDevP1 = Math.abs(devP1Ms);
-                const absDevP2 = Math.abs(devP2Ms);
-                let roundWinnerText = '';
-                if (absDevP1 < absDevP2) {
-                    roundWinnerText = 'Spelare 1 var närmast denna omgång!';
-                } else if (absDevP2 < absDevP1) {
-                    roundWinnerText = 'Spelare 2 var närmast denna omgång!';
-                } else {
-                    roundWinnerText = 'Oavgjort i denna omgång!';
-                }
-                roundWinnerStatus.textContent = roundWinnerText;
+                    const resultCard = document.createElement('div');
+                    resultCard.className = `w-full sm:w-1/3 p-2 rounded-lg border-2 shadow-md ${colorClass}`;
+                    
+                    resultCard.innerHTML = `
+                        <h4 class="font-bold text-lg text-gray-800">Spelare ${playerNumber}</h4>
+                        <p class="text-sm">Tid: <strong class="float-right font-mono">${(clickTimeMs / MS_TO_S).toFixed(2)} s</strong></p>
+                        <div class="h-px bg-gray-300 my-1"></div>
+                        <p class="font-bold">Skillnad: <strong class="float-right font-mono text-base ${absDev < 100 ? 'text-green-600' : 'text-red-600'}">${formatDeviation(devMs, resultCard)}</strong></p>
+                    `;
+                    roundResultsDisplay.appendChild(resultCard);
+                });
+
+                // 2. Visa vinnarstatus
+                roundWinnerStatus.textContent = `Spelare ${closestPlayerIndex + 1} var närmast denna omgång!`;
                 
                 resultArea.classList.remove('hidden'); 
             }
 
+            /** Visar den totala poängtavlan. */
+            function displayScoreboard(gameData) {
+                totalScoreboard.innerHTML = ''; // Rensa gamla resultat
+                totalScoreboard.classList.remove('hidden');
+                
+                let scores = gameData.playerIds.map((id, index) => ({
+                    playerNum: index + 1,
+                    totalError: gameData.totalErrors[index] || 0
+                }));
+
+                // Sortera efter lägst fel (bäst resultat)
+                scores.sort((a, b) => a.totalError - b.totalError);
+                
+                let html = '<h3 class="text-lg font-bold mb-2 text-gray-700">Total Felmarginal (Lägst är Bäst)</h3>';
+
+                scores.forEach((score, index) => {
+                    const colorClass = index === 0 ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-100 border-gray-300';
+                    const playerColor = score.playerNum === 1 ? 'text-red-700' : (score.playerNum === 2 ? 'text-blue-700' : 'text-gray-700');
+                    
+                    html += `
+                        <div class="flex justify-between items-center p-2 rounded-lg border ${colorClass}">
+                            <span class="font-bold ${playerColor}">Spelare ${score.playerNum}</span>
+                            <span class="text-xl font-mono">${(score.totalError / MS_TO_S).toFixed(2)} s</span>
+                        </div>
+                    `;
+                });
+                totalScoreboard.innerHTML = html;
+            }
+
+
             /** Visar slutresultatet. */
             function displayFinalWinner(gameData) {
+                const scores = gameData.playerIds.map((id, index) => ({
+                    playerNum: index + 1,
+                    totalError: gameData.totalErrors[index] || 0
+                }));
+                scores.sort((a, b) => a.totalError - b.totalError);
+
                 let finalWinnerText = '';
-                if (gameData.player1TotalError < gameData.player2TotalError) {
-                    finalWinnerText = `SPELARE 1 VANN! (${(gameData.player1TotalError / MS_TO_S).toFixed(2)}s fel)`;
-                } else if (gameData.player2TotalError < gameData.player1TotalError) {
-                    finalWinnerText = `SPELARE 2 VANN! (${(gameData.player2TotalError / MS_TO_S).toFixed(2)}s fel)`;
+                if (scores.length > 0) {
+                    if (scores.length > 1 && scores[0].totalError < scores[1].totalError) {
+                        finalWinnerText = `SPELARE ${scores[0].playerNum} VANN! (${(scores[0].totalError / MS_TO_S).toFixed(2)}s fel)`;
+                    } else if (scores.length > 1 && scores[0].totalError === scores[1].totalError) {
+                         finalWinnerText = `OAVGJORT mellan toppspelarna! Vinnare: Spelare ${scores[0].playerNum} (${(scores[0].totalError / MS_TO_S).toFixed(2)}s fel)`;
+                    } else {
+                        finalWinnerText = `SPELARE ${scores[0].playerNum} VANN! (${(scores[0].totalError / MS_TO_S).toFixed(2)}s fel)`;
+                    }
                 } else {
-                    finalWinnerText = `OAVGJORT! (${(gameData.player1TotalError / MS_TO_S).toFixed(2)}s fel vardera)`;
+                    finalWinnerText = 'Inga spelare kunde hittas i resultatet.';
                 }
 
                 finalWinnerStatus.textContent = finalWinnerText;
@@ -461,8 +545,10 @@
 
             /** Lyssnar på speluppdateringar och hanterar lokal starttid. */
             function listenToGameUpdatesAndStartTime(docId) {
-                if (unsubscribe) unsubscribe(); // Sluta lyssna på föregående match
+                if (unsubscribe) unsubscribe();
                 gameId = docId;
+                // Stäng av lyssnaren för tillgängliga spel när vi är i ett spel
+                if (unsubscribeAvailableGames) unsubscribeAvailableGames();
 
                 const gameRef = getGameRef(docId);
                 
@@ -471,14 +557,16 @@
                     if (docSnap.exists) { 
                         const gameData = docSnap.data();
                         
-                        if (playerRole === null) {
-                            if (gameData.player1Id === userId) {
-                                playerRole = 'P1';
-                            } else if (gameData.player2Id === userId) {
-                                playerRole = 'P2';
-                            }
+                        // Sätt spelarens index
+                        playerIndex = gameData.playerIds.indexOf(userId);
+                        playerRole = playerIndex === 0 ? 'P1' : (playerIndex !== -1 ? 'P_OTHER' : null);
+
+                        if (playerIndex === -1 && gameData.status !== 'SETUP') {
+                            alert("Du är inte med i detta spel.");
+                            resetLocalState();
+                            return;
                         }
-                        
+
                         // STARTTID LOGIK: Sätt den lokala starttiden när status blir WAITING_FOR_CLICKS
                         if (gameData.status === 'WAITING_FOR_CLICKS' && sessionStorage.getItem('gameStartTime') === null) {
                             // Sätt startTime till nuvarande prestandatid för att mäta elapsed time lokalt
@@ -506,32 +594,35 @@
 
             /** Skapar ett nytt spel (endast P1). */
             async function createNewGame() {
-                // FIX: Rensar gameId vid start av nytt spel
+                // FIX: Rensar gamla lyssnare och ID
                 resetGameId(); 
                 
                 const newGameCode = generateGameCode();
                 const gameRef = getGameRef(newGameCode);
 
                 const initialData = {
-                    gameCode: newGameCode, status: 'SETUP', // Väntar på P2
-                    round: 1, maxRounds: maxRounds, hostId: userId,
-                    player1Id: userId, player2Id: null, player1ClickTime: 0, player2ClickTime: 0,
-                    player1TotalError: 0, player2TotalError: 0, targetTimeMs: 0, 
+                    gameCode: newGameCode, status: 'SETUP', 
+                    round: 1, maxRounds: maxRounds,
+                    playerIds: [userId], // Endast skaparen
+                    clickTimes: [0],
+                    totalErrors: [0], // En total felmarginal per spelare
+                    targetTimeMs: 0, 
                     lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                 };
 
                 try {
                     await gameRef.set(initialData);
-                    playerRole = 'P1';
                     listenToGameUpdatesAndStartTime(newGameCode);
+                    // Dölj listan när ett spel skapas
+                    document.getElementById('available-games-area').classList.add('hidden');
                 } catch (error) {
                     console.error("Fel vid skapande av spel:", error);
                     alert("Kunde inte starta spelet.");
                 }
             }
 
-            /** Ansluter till ett befintligt spel (P2). */
-            async function joinExistingGame(code) {
+            /** Ansluter till ett befintligt spel (P2 och framåt). */
+            window.joinExistingGame = async function(code) { // Gör global för onclick
                 // Använd koden direkt om den skickas från en klickad knapp
                 let finalCode = code;
                 
@@ -547,28 +638,35 @@
                 const gameRef = getGameRef(finalCode);
 
                 try {
-                    // Använd globala Firebase-funktioner
                     await db.runTransaction(async (transaction) => {
                         const gameDoc = await transaction.get(gameRef);
 
                         // KORRIGERING HÄR: Använd .exists på transaktionsresultatet
                         if (!gameDoc.exists) throw "Spelet existerar inte.";
                         const data = gameDoc.data();
-                        if (data.player2Id !== null) throw "Spelet är fullt.";
-                        if (data.player1Id === userId) throw "Du är redan i spelet som Spelare 1.";
-                        if (data.status !== 'SETUP') throw "Spelet har redan startat eller avslutats.";
+                        
+                        if (data.status !== 'SETUP') throw "Spelet har redan startat rundan.";
+                        if (data.playerIds.includes(userId)) throw "Du är redan ansluten till detta spel.";
+                        
+                        // Lägg till den nya spelaren i listorna
+                        const newPlayerIds = [...data.playerIds, userId];
+                        const newClickTimes = [...data.clickTimes, 0];
+                        const newTotalErrors = [...data.totalErrors, 0];
 
-                        // Uppdatera: Lägg till P2 och byt status till WAITING_FOR_CLICKS
+
+                        // Uppdatera: Lägg till den nya spelaren
                         transaction.update(gameRef, {
-                            player2Id: userId,
-                            status: 'WAITING_FOR_CLICKS',
-                            targetTimeMs: generateRandomTime(), // Generera första måltiden igen vid anslutning
+                            playerIds: newPlayerIds,
+                            clickTimes: newClickTimes,
+                            totalErrors: newTotalErrors,
                             lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                         });
                     });
                     
-                    playerRole = 'P2';
+                    // Lyssna på spelet direkt efter att anslutningen lyckades
                     listenToGameUpdatesAndStartTime(finalCode);
+                    document.getElementById('available-games-area').classList.add('hidden');
+
                 } catch (error) {
                     console.error("Fel vid anslutning till spel:", error);
                     alert(`Kunde inte ansluta: ${typeof error === 'string' ? error : error.message}`);
@@ -579,51 +677,68 @@
             async function recordClickTime(gameData, clickTimeMs) {
                 const gameRef = getGameRef();
                 
-                let update = {};
-                let isRoundFinished = false;
-                let currentP1Time = gameData.player1ClickTime;
-                let currentP2Time = gameData.player2ClickTime;
+                // Hitta spelarens index
+                const playerClickIndex = gameData.playerIds.indexOf(userId);
+                if (playerClickIndex === -1) return; 
 
-                if (playerRole === 'P1' && gameData.player1ClickTime === 0) {
-                    update.player1ClickTime = clickTimeMs;
-                    currentP1Time = clickTimeMs;
-                    if (currentP2Time > 0) isRoundFinished = true;
-                } else if (playerRole === 'P2' && gameData.player2ClickTime === 0) {
-                    update.player2ClickTime = clickTimeMs;
-                    currentP2Time = clickTimeMs;
-                    if (currentP1Time > 0) isRoundFinished = true;
-                } else {
-                    return; // Redan klickat
-                }
-                
-                if (isRoundFinished) {
-                    // Beräkna fel och uppdatera totala poäng innan statusändring
-                    const p1Dev = currentP1Time - gameData.targetTimeMs;
-                    const p2Dev = currentP2Time - gameData.targetTimeMs;
+                // Om spelaren redan klickat i denna omgång
+                if (gameData.clickTimes[playerClickIndex] !== 0) return;
 
-                    update.player1TotalError = gameData.player1TotalError + Math.abs(p1Dev);
-                    update.player2TotalError = gameData.player2TotalError + Math.abs(p2Dev);
-
-                    // Kontrollera om matchen är slut
-                    if (gameData.round < maxRounds) {
-                        update.status = 'ROUND_FINISHED';
-                    } else {
-                        update.status = 'MATCH_FINISHED';
-                    }
-                }
-
-                update.lastUpdateTime = firebase.firestore.FieldValue.serverTimestamp();
-
+                // Använd transaktion för att säkerställa atomiska uppdateringar
                 try {
-                    await gameRef.update(update);
+                    await db.runTransaction(async (transaction) => {
+                        const currentDoc = await transaction.get(gameRef);
+                        if (!currentDoc.exists) return;
+                        
+                        const currentData = currentDoc.data();
+                        
+                        // Skapa kopior av listorna för uppdatering
+                        let newClickTimes = [...currentData.clickTimes];
+                        let newTotalErrors = [...currentData.totalErrors];
+                        
+                        // Uppdatera klick-tid för den aktuella spelaren
+                        newClickTimes[playerClickIndex] = clickTimeMs;
+
+                        // Kontrollera om alla spelare har klickat
+                        const allClicked = newClickTimes.every(time => time !== 0);
+
+                        let update = { clickTimes: newClickTimes };
+                        
+                        if (allClicked) {
+                            // Beräkna resultat och uppdatera totala fel
+                            const targetTimeMs = currentData.targetTimeMs;
+
+                            currentData.playerIds.forEach((id, index) => {
+                                const clickTime = newClickTimes[index]; // Använd den nya klicktiden
+                                const dev = clickTime - targetTimeMs; 
+                                const absDev = Math.abs(dev);
+                                
+                                // FIX: Uppdatera totalErrors baserat på den nya omgångens resultat
+                                newTotalErrors[index] = (currentData.totalErrors[index] || 0) + absDev;
+                            });
+                            
+                            update.totalErrors = newTotalErrors;
+                            
+                            // Kontrollera om matchen är slut
+                            if (currentData.round < maxRounds) {
+                                update.status = 'ROUND_FINISHED';
+                            } else {
+                                update.status = 'MATCH_FINISHED';
+                            }
+                        }
+
+                        update.lastUpdateTime = firebase.firestore.FieldValue.serverTimestamp();
+                        transaction.update(gameRef, update);
+
+                    });
                 } catch (error) {
-                    console.error("Fel vid inspelning av klick:", error);
+                    console.error("Fel vid transaktion/inspelning av klick:", error);
                 }
             }
 
             /** Startar nästa runda/match (endast P1). */
             async function startNextRoundOrMatch(gameData) {
-                if (playerRole !== 'P1' || gameData.player2Id === null) return;
+                if (gameData.playerIds[0] !== userId) return; // Endast skaparen får starta
                 
                 const gameRef = getGameRef();
                 let update = {};
@@ -631,22 +746,22 @@
                 if (gameData.status === 'MATCH_FINISHED') {
                     // Återställ hela matchen
                     update = {
-                        status: 'WAITING_FOR_CLICKS',
+                        status: 'SETUP', // Återgå till SETUP för att tillåta nya spelare
                         round: 1,
-                        player1ClickTime: 0,
-                        player2ClickTime: 0,
-                        player1TotalError: 0,
-                        player2TotalError: 0,
-                        targetTimeMs: generateRandomTime(),
+                        // Återställ clickTimes och nollställ totalErrors, behåll playerIds
+                        clickTimes: gameData.playerIds.map(() => 0),
+                        totalErrors: gameData.playerIds.map(() => 0),
+                        targetTimeMs: 0, // Sätt till 0 i SETUP-läge
                         lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                     };
+                    // FIX: Efter match slut, vill vi att skaparen ska kunna ta bort gamla spelare, men för enkelhetens skull, behåller vi dem.
                 } else if (gameData.status === 'ROUND_FINISHED') {
                     // Starta nästa runda
                     update = {
                         status: 'WAITING_FOR_CLICKS',
                         round: gameData.round + 1,
-                        player1ClickTime: 0,
-                        player2ClickTime: 0,
+                        // Återställ clickTimes, behåll totalErrors
+                        clickTimes: gameData.playerIds.map(() => 0),
                         targetTimeMs: generateRandomTime(),
                         lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                     };
@@ -664,28 +779,29 @@
                 if (unsubscribe) unsubscribe();
                 gameId = null;
                 playerRole = null;
+                playerIndex = -1;
+                // Återaktivera lyssnaren för tillgängliga spel i setup-läge
+                listenForAvailableGames(); 
+                document.getElementById('available-games-area').classList.remove('hidden');
+
             }
 
             /** Återställer applikationen till initialt läge. */
             function resetLocalState() {
-                if (unsubscribe) unsubscribe();
-                gameId = null;
-                playerRole = null;
+                if (unsubscribeAvailableGames) unsubscribeAvailableGames();
+                resetGameId();
                 sessionStorage.removeItem('gameStartTime');
                 mainGameArea.classList.add('hidden');
                 gameControlArea.classList.remove('hidden');
                 document.getElementById('app-title').classList.remove('hidden');
                 document.getElementById('app-description').classList.remove('hidden');
                 // Återställ UI till grundläge
-                targetDisplay.textContent = 'Väntar på start...';
-                targetTimeText.textContent = '--';
-                waitingForPlayer.classList.add('hidden');
-                resultArea.classList.add('hidden');
-                finalResultArea.classList.add('hidden');
-                gameCodeDisplay.textContent = 'Ingen match aktiv';
-                p1TotalErrorDisplay.textContent = '0.00 s';
-                p2TotalErrorDisplay.textContent = '0.00 s';
-                startSetupButton.textContent = 'Starta Nytt Spel (Spelare 1)';
+                totalScoreboard.innerHTML = '<p class="text-xs text-gray-400">Resultat visas när matchen är slut.</p>';
+                availableGamesList.innerHTML = '<p class="text-xs text-gray-400">Hämtar...</p>';
+                startSetupButton.disabled = false;
+                
+                // Anropa init för att starta om processen och hämta tillgängliga spel
+                initApp(); 
             }
 
             // --- EVENT LISTENERS ---
@@ -699,7 +815,6 @@
                             // 1. STARTA NYTT SPEL
                             await createNewGame();
                         } else {
-                            // Detta bör inte hända, men om det gör det, var alert.
                             alert("Ett spel är redan startat. Vänligen lämna matchen först.");
                         }
                     });
@@ -716,7 +831,7 @@
                             gameData = gameDoc.data();
                         }
 
-                        if (gameData && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
+                        if (gameData && gameData.playerIds[0] === userId && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
                             // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
                             await startNextRoundOrMatch(gameData);
                         }
@@ -726,8 +841,9 @@
                     // KORRIGERING: Anrop joinExistingGame utan argument, som då hämtar från inputfältet
                     joinButton.addEventListener('click', () => joinExistingGame(null)); 
 
-                    const handlePlayerClick = async (playerNum) => {
-                        // KORRIGERING: Använd get() och kontrollera existens.
+                    multiWaitButton.addEventListener('click', async () => {
+                        if (playerIndex === -1) return;
+
                         const gameDoc = await getGameRef().get();
                         if (!gameDoc.exists) return;
 
@@ -743,21 +859,12 @@
                         
                         const finalElapsedTime = performance.now() - localStartTime;
 
-                        if (playerRole === 'P1' && playerNum === 1) { // Lade till explicit rollkontroll för att undvika dubbelklick
-                            waitButtonP1.textContent = 'Klickat...';
-                            waitButtonP1.disabled = true;
-                        } else if (playerRole === 'P2' && playerNum === 2) {
-                            waitButtonP2.textContent = 'Klickat...';
-                            waitButtonP2.disabled = true;
-                        } else {
-                            return; // Fel roll klickade på fel knapp
-                        }
-                        
-                        await recordClickTime(gameData, finalElapsedTime);
-                    };
+                        // Uppdatera endast den klickade knappens text visuellt tills databasen svarar
+                        multiWaitButton.textContent = 'Klickat...';
+                        multiWaitButton.disabled = true;
 
-                    waitButtonP1.addEventListener('click', () => handlePlayerClick(1));
-                    waitButtonP2.addEventListener('click', () => handlePlayerClick(2));
+                        await recordClickTime(gameData, finalElapsedTime);
+                    });
                     
                     document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
 
@@ -770,7 +877,6 @@
             
             // Den globala onload-funktionen som garanterar att allt är laddat
             window.onload = function() {
-                // Vi kallar den nya kontrollfunktionen
                 initApp();
             };
 
