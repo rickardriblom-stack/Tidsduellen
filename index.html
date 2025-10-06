@@ -199,7 +199,6 @@
         async function initFirebase() {
             // Kontrollera att Firebase-funktionerna är globalt tillgängliga
             if (typeof firebase === 'undefined' || !firebase.initializeApp) {
-                // Denna fallback kommer endast köras om skriptladdningen misslyckats
                 authStatus.textContent = "Fel: Kunde inte ladda Firebase-biblioteken. Kontrollera din internetanslutning.";
                 return;
             }
@@ -631,9 +630,10 @@
 
         // --- EVENT LISTENERS ---
 
-        window.onload = () => {
+        // KORRIGERAT: Använd window.onload för att garantera att alla externa skript (Firebase) har laddats.
+        window.onload = function() {
             initFirebase();
-
+            
             startButton.addEventListener('click', async () => {
                 const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
                 
