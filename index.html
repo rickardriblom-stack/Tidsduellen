@@ -4,27 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tidsmästaren Duell (Online)</title>
-    <!-- Laddar Tailwind CSS och Firebase-bibliotek -->
+    <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    <!-- Laddar Firebase Globalt (KORRIGERING: Använder ej "import" för att undvika blockering) -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        .btn-base {
+            padding: 0.75rem 1rem; /* Kompaktare för mobil */
+            font-size: 1rem; 
+            font-weight: 700;
+            transition: all 0.2s;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-start { background-color: #10b981; color: white; }
+        .btn-p1 { background-color: #ef4444; color: white; box-shadow: 0 8px 10px rgba(239, 68, 68, 0.4); }
+        .btn-p2 { background-color: #3b82f6; color: white; box-shadow: 0 8px 10px rgba(59, 130, 246, 0.4); }
+        .btn-base:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); }
+        .btn-base:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        .input-code {
+            padding: 0.75rem;
+            border: 2px solid #ccc;
+            border-radius: 0.5rem;
+            text-transform: uppercase;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-start min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-lg bg-white p-4 md:p-6 rounded-xl shadow-2xl text-center mx-auto mt-4 mb-4">
         
-        // Aktivera debug-loggning för att förenkla felsökning vid databasproblem
-        setLogLevel('Debug');
+        <!-- Autentiseringsstatus -->
+        <p id="auth-status" class="text-xs text-gray-500 mb-4 break-all">Initierar...</p>
 
-        // --- GLOBALA VARIABLER FRÅN CANVAS-MILJÖN (KORRIGERAD FÖR LOKAL KÖRNING) ---
-        // Dessa fallbacks ser till att appen kan initialisera Firebase även utanför miljön
-        // genom att använda anonyma/generiska värden.
-        let __app_id = typeof __app_id === 'undefined' ? 'LOCAL_DUEL_ID' : __app_id;
-        let __firebase_config = typeof __firebase_config === 'undefined' ? '{}' : __firebase_config;
-        let __initial_auth_token = typeof __initial_auth_token === 'undefined' ? null : __initial_auth_token;
+        <!-- Initial Huvudrubrik -->
+        <h1 id="app-title" class="text-2xl font-extrabold text-gray-900 mb-2">Tidsmästaren: Duell (Online)</h1>
+        <p id="app-description" class="text-sm text-gray-600 mb-4">Tävla mot en vän över internet. Bäst av 3 rundor!</p>
 
-        const appId = __app_id;
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const initialAuthToken = __initial_auth_token;
+        <!-- --- SPELKONTROLL (SETUP) --- -->
+        <div id="game-control-area" class="space-y-4 p-4 rounded-xl bg-gray-50 border hidden">
+            <h2 class="text-xl font-bold text-gray-800">Skapa eller Gå Med</h2>
+            
+            <button id="start-button" class="btn-base btn-start w-full" disabled>
+                Starta Nytt Spel (Spelare 1)
+            </button>
+
+            <div class="flex gap-2">
+                <input id="join-game-code" type="text" maxlength="4" placeholder="Ange Spelkod" class="input-code w-1/3">
+                <button id="join-button" class="btn-base btn-p2 w-2/3" disabled>
+                    Gå med i Spel (Spelare 2)
+                </button>
+            </div>
+        </div>
+
+        <!-- --- HUVUD SPELYTA (GAME) --- -->
+        <div id="main-game-area" class="hidden">
+            
+            <p id="game-code-display" class="text-sm font-semibold text-indigo-700 mb-2">Ingen match aktiv</p>
+            
+            <!-- Omgångsräknare & Måltid Display -->
+            <div class="mb-4 p-4 bg-indigo-50 rounded-lg shadow-inner">
+                <p id="round-counter" class="text-sm font-semibold text-indigo-700 mb-1">Omgång -- av 3</p>
+                <h2 id="target-display" class="text-base font-semibold text-indigo-700">Väntar på uppkoppling...</h2>
+                <p id="target-time" class="text-3xl font-mono text-indigo-900 mt-1">--</p>
+            </div>
+
+            <p id="waiting-for-player" class="text-lg font-bold text-red-600 mb-4 hidden">Väntar på motståndare...</p>
+
+            <!-- Poängtavla -->
+            <div id="scoreboard-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 border-gray-300 bg-gray-50">
+                <h3 class="text-lg font-bold mb-2 text-gray-700">Total Felmarginal (Lägst är Bäst)</h3>
+
+                <div class="flex gap-4 text-center">
+                    <div class="w-1/2 p-2 rounded-lg border border-red-300">
+                        <p class="text-sm text-red-700 font-semibold">P1 Röd</p>
+                        <p id="p1-total-error" class="text-xl font-mono font-bold text-red-600">0.00 s</p>
+                    </div>
+                    <div class="w-1/2 p-2 rounded-lg border border-blue-300">
+                        <p class="text-sm text-blue-700 font-semibold">P2 Blå</p>
+                        <p id="p2-total-error" class="text-xl font-mono font-bold text-blue-600">0.00 s</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultat Display (Per Omgång) -->
+            <div id="result-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 hidden">
+                <h3 class="text-xl font-bold mb-3 text-gray-800">Resultat Omgång</h3>
+
+                <div class="flex gap-3 text-sm">
+                    <!-- Spelare 1 Resultat -->
+                    <div class="w-1/2 p-2 rounded-lg border-2 border-red-400 bg-red-50">
+                        <h4 class="font-bold text-red-700">Spelare 1</h4>
+                        <p class="text-xs">Tid: <strong id="res-actual-p1" class="float-right font-mono">--</strong></p>
+                        <div class="h-px bg-red-300 my-1"></div>
+                        <p class="font-bold">Skillnad: <strong id="res-deviation-p1" class="float-right font-mono text-base text-red-600">--</strong></p>
+                    </div>
+
+                    <!-- Spelare 2 Resultat -->
+                    <div class="w-1/2 p-2 rounded-lg border-2 border-blue-400 bg-blue-50">
+                        <h4 class="font-bold text-blue-700">Spelare 2</h4>
+                        <p class="text-xs">Tid: <strong id="res-actual-p2" class="float-right font-mono">--</strong></p>
+                        <div class="h-px bg-blue-300 my-1"></div>
+                        <p class="font-bold">Skillnad: <strong id="res-deviation-p2" class="float-right font-mono text-base text-blue-600">--</strong></p>
+                    </div>
+                </div>
+
+                <p id="round-winner-status" class="text-lg font-extrabold mt-3 p-2 rounded-lg bg-yellow-100 text-yellow-800"></p>
+            </div>
+
+            <!-- Slutresultat -->
+            <div id="final-result-area" class="p-4 rounded-xl shadow-2xl hidden bg-purple-100 border-4 border-purple-500">
+                <h3 class="text-2xl font-extrabold text-purple-800 mb-2">TOTAL VINNARE! 🎉</h3>
+                <p id="final-winner-status" class="text-xl font-bold text-gray-800 mb-2"></p>
+            </div>
+
+            <!-- Interaktionsknappar -->
+            <div class="space-y-3 mt-4">
+                <div class="flex gap-3">
+                    <button id="wait-button-p1" class="btn-base btn-p1 w-1/2" disabled> P1 Tryck NU! </button>
+                    <button id="wait-button-p2" class="btn-base btn-p2 w-1/2" disabled> P2 Tryck NU! </button>
+                </div>
+                <button id="start-button" class="btn-base btn-start w-full"> STARTA OMGÅNG </button>
+            </div>
+            
+            <button onclick="resetLocalState()" class="text-xs text-gray-500 mt-4 underline">Lämna match/Återställ</button>
+        </div>
+
+    </div>
+
+    <script>
+        
+        // --- GLOBALA VARIABLER (KORRIGERAD FÖR ONLINE HOSTING) ---
+        // Använder generiska, säkra ID:n för att appen ska starta online.
+        const appId = 'GITHUB_DUEL_ID'; // Unik ID för alla som kör denna fil
+        const firebaseConfig = {}; // Tom config fungerar med Canvas inloggning
+        const initialAuthToken = null; 
 
         let app, db, auth;
         let userId = null;
@@ -64,29 +190,41 @@
 
         // --- FIREBASE INITIALISERING OCH AUTENTISERING ---
 
-        async function initFirebase() {
-            try {
-                // Initiera appen med antingen den riktiga konfigurationen eller den tomma reserven.
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+        // Ny hjälpfuktion för att få referensen till spel dokumentet
+        function getGameRef(id = gameId) {
+            // Använd db.collection().doc() för den mest kompatibla syntaxen
+            return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('games').doc(id);
+        }
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
+        async function initFirebase() {
+            // Kontrollera att Firebase-funktionerna är globalt tillgängliga
+            if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+                authStatus.textContent = "Fel: Kunde inte ladda Firebase-biblioteken. Kontrollera din internetanslutning.";
+                return;
+            }
+
+            try {
+                // Använd globala Firebase-funktioner
+                app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth(); // KORRIGERAT: Enkel global åtkomst
+                db = firebase.firestore(); // KORRIGERAT: Enkel global åtkomst
+
+                // Sätt loggningsnivån direkt efter att db har initierats
+                db.setLogLevel('Debug');
+
+                // Försök logga in anonymt omedelbart för att få ett userId
+                auth.signInAnonymously() // KORRIGERAT: Använd auth instansen
+                    .then((userCredential) => {
+                        userId = userCredential.user.uid;
                         authStatus.textContent = `Ditt Användar-ID: ${userId}`;
                         gameControlArea.classList.remove('hidden');
                         startButton.disabled = false;
                         joinButton.disabled = false;
-                    } else {
-                        // Logga in anonymt om ingen token finns, annars med token
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth); // Fallback till anonym inloggning
-                        }
-                    }
-                });
+                    })
+                    .catch((error) => {
+                        console.error("Firebase Auth Error:", error);
+                        authStatus.textContent = "Autentiseringsfel. Kan inte starta spel.";
+                    });
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
@@ -283,9 +421,9 @@
             if (unsubscribe) unsubscribe(); // Sluta lyssna på föregående match
             gameId = docId;
 
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, docId);
+            const gameRef = getGameRef(docId); // KORRIGERAT
             
-            unsubscribe = onSnapshot(gameRef, (docSnap) => {
+            unsubscribe = gameRef.onSnapshot((docSnap) => { // KORRIGERAT: Använd docRef.onSnapshot
                 if (docSnap.exists()) {
                     const gameData = docSnap.data();
                     
@@ -325,18 +463,18 @@
         /** Skapar ett nytt spel (endast P1). */
         async function createNewGame() {
             const newGameCode = generateGameCode();
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games/${newGameCode}`);
+            const gameRef = getGameRef(newGameCode); // KORRIGERAT
 
             const initialData = {
                 gameCode: newGameCode, status: 'SETUP', // Väntar på P2
                 round: 1, maxRounds: maxRounds, hostId: userId,
                 player1Id: userId, player2Id: null, player1ClickTime: 0, player2ClickTime: 0,
                 player1TotalError: 0, player2TotalError: 0, targetTimeMs: 0, 
-                lastUpdateTime: serverTimestamp(),
+                lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
             };
 
             try {
-                await setDoc(gameRef, initialData);
+                await gameRef.set(initialData); // KORRIGERAT: Använd docRef.set
                 playerRole = 'P1';
                 listenToGameUpdatesAndStartTime(newGameCode);
             } catch (error) {
@@ -353,10 +491,11 @@
                 return;
             }
 
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games/${code}`);
+            const gameRef = getGameRef(code); // KORRIGERAT
 
             try {
-                await runTransaction(db, async (transaction) => {
+                // Använd globala Firebase-funktioner
+                await db.runTransaction(async (transaction) => { // KORRIGERAT: Använd db.runTransaction
                     const gameDoc = await transaction.get(gameRef);
 
                     if (!gameDoc.exists()) throw "Spelet existerar inte.";
@@ -371,7 +510,7 @@
                         player2Id: userId,
                         status: 'WAITING_FOR_CLICKS',
                         targetTimeMs: targetTime,
-                        lastUpdateTime: serverTimestamp(),
+                        lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
                     });
                 });
                 
@@ -385,7 +524,7 @@
 
         /** Uppdaterar klick-tid i databasen när en spelare klickar. */
         async function recordClickTime(gameData, clickTimeMs) {
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games/${gameId}`);
+            const gameRef = getGameRef(); // KORRIGERAT
             
             let update = {};
             let isRoundFinished = false;
@@ -420,10 +559,10 @@
                 }
             }
 
-            update.lastUpdateTime = serverTimestamp();
+            update.lastUpdateTime = firebase.firestore.FieldValue.serverTimestamp(); // KORRIGERAT
 
             try {
-                await updateDoc(gameRef, update);
+                await gameRef.update(update); // KORRIGERAT: Använd docRef.update
             } catch (error) {
                 console.error("Fel vid inspelning av klick:", error);
             }
@@ -433,7 +572,7 @@
         async function startNextRoundOrMatch(gameData) {
             if (playerRole !== 'P1' || gameData.player2Id === null) return;
             
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games/${gameId}`);
+            const gameRef = getGameRef(); // KORRIGERAT
             let update = {};
 
             if (gameData.status === 'MATCH_FINISHED') {
@@ -446,7 +585,7 @@
                     player1TotalError: 0,
                     player2TotalError: 0,
                     targetTimeMs: generateRandomTime(),
-                    lastUpdateTime: serverTimestamp(),
+                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
                 };
             } else if (gameData.status === 'ROUND_FINISHED') {
                 // Starta nästa runda
@@ -456,12 +595,12 @@
                     player1ClickTime: 0,
                     player2ClickTime: 0,
                     targetTimeMs: generateRandomTime(),
-                    lastUpdateTime: serverTimestamp(),
+                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
                 };
             }
 
             try {
-                await updateDoc(gameRef, update);
+                await gameRef.update(update); // KORRIGERAT: Använd docRef.update
             } catch (error) {
                 console.error("Fel vid start av nästa runda/match:", error);
             }
@@ -499,7 +638,7 @@
                 
                 if (isGameActive) {
                     // P1 klickar på STARTA OMGÅNG / SPELA IGEN
-                    const gameDoc = await getDoc(doc(db, `artifacts/${appId}/public/data/games/${gameId}`));
+                    const gameDoc = await getGameRef().get(); // KORRIGERAT: Använd docRef.get
                     if (gameDoc.exists() && playerRole === 'P1') {
                         await startNextRoundOrMatch(gameDoc.data());
                     }
@@ -513,7 +652,7 @@
 
             // Spelarklick-hantering
             const handlePlayerClick = async (playerNum) => {
-                const gameDoc = await getDoc(doc(db, `artifacts/${appId}/public/data/games/${gameId}`));
+                const gameDoc = await getGameRef().get(); // KORRIGERAT: Använd docRef.get
                 const gameData = gameDoc.data();
                 
                 if (gameData.status !== 'WAITING_FOR_CLICKS') return;
@@ -548,135 +687,5 @@
         });
 
     </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-        }
-        .btn-base {
-            padding: 0.75rem 1rem; /* Kompaktare för mobil */
-            font-size: 1rem; 
-            font-weight: 700;
-            transition: all 0.2s;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .btn-start { background-color: #10b981; color: white; }
-        .btn-p1 { background-color: #ef4444; color: white; box-shadow: 0 8px 10px rgba(239, 68, 68, 0.4); }
-        .btn-p2 { background-color: #3b82f6; color: white; box-shadow: 0 8px 10px rgba(59, 130, 246, 0.4); }
-        .btn-base:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); }
-        .btn-base:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
-        .input-code {
-            padding: 0.75rem;
-            border: 2px solid #ccc;
-            border-radius: 0.5rem;
-            text-transform: uppercase;
-            text-align: center;
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 flex items-center justify-start min-h-screen p-4">
-
-    <div id="app-container" class="w-full max-w-lg bg-white p-4 md:p-6 rounded-xl shadow-2xl text-center mx-auto mt-4 mb-4">
-        
-        <!-- Autentiseringsstatus -->
-        <p id="auth-status" class="text-xs text-gray-500 mb-4 break-all">Initierar...</p>
-
-        <!-- Initial Huvudrubrik -->
-        <h1 id="app-title" class="text-2xl font-extrabold text-gray-900 mb-2">Tidsmästaren: Duell (Online)</h1>
-        <p id="app-description" class="text-sm text-gray-600 mb-4">Tävla mot en vän över internet. Bäst av 3 rundor!</p>
-
-        <!-- --- SPELKONTROLL (SETUP) --- -->
-        <div id="game-control-area" class="space-y-4 p-4 rounded-xl bg-gray-50 border hidden">
-            <h2 class="text-xl font-bold text-gray-800">Skapa eller Gå Med</h2>
-            
-            <button id="start-button" class="btn-base btn-start w-full" disabled>
-                Starta Nytt Spel (Spelare 1)
-            </button>
-
-            <div class="flex gap-2">
-                <input id="join-game-code" type="text" maxlength="4" placeholder="Ange Spelkod" class="input-code w-1/3">
-                <button id="join-button" class="btn-base btn-p2 w-2/3" disabled>
-                    Gå med i Spel (Spelare 2)
-                </button>
-            </div>
-        </div>
-
-        <!-- --- HUVUD SPELYTA (GAME) --- -->
-        <div id="main-game-area" class="hidden">
-            
-            <p id="game-code-display" class="text-sm font-semibold text-indigo-700 mb-2">Ingen match aktiv</p>
-            
-            <!-- Omgångsräknare & Måltid Display -->
-            <div class="mb-4 p-4 bg-indigo-50 rounded-lg shadow-inner">
-                <p id="round-counter" class="text-sm font-semibold text-indigo-700 mb-1">Omgång -- av 3</p>
-                <h2 id="target-display" class="text-base font-semibold text-indigo-700">Väntar på uppkoppling...</h2>
-                <p id="target-time" class="text-3xl font-mono text-indigo-900 mt-1">--</p>
-            </div>
-
-            <p id="waiting-for-player" class="text-lg font-bold text-red-600 mb-4 hidden">Väntar på motståndare...</p>
-
-            <!-- Poängtavla -->
-            <div id="scoreboard-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 border-gray-300 bg-gray-50">
-                <h3 class="text-lg font-bold mb-2 text-gray-700">Total Felmarginal (Lägst är Bäst)</h3>
-
-                <div class="flex gap-4 text-center">
-                    <div class="w-1/2 p-2 rounded-lg border border-red-300">
-                        <p class="text-sm text-red-700 font-semibold">P1 Röd</p>
-                        <p id="p1-total-error" class="text-xl font-mono font-bold text-red-600">0.00 s</p>
-                    </div>
-                    <div class="w-1/2 p-2 rounded-lg border border-blue-300">
-                        <p class="text-sm text-blue-700 font-semibold">P2 Blå</p>
-                        <p id="p2-total-error" class="text-xl font-mono font-bold text-blue-600">0.00 s</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resultat Display (Per Omgång) -->
-            <div id="result-area" class="mb-4 p-3 rounded-xl shadow-lg border-2 hidden">
-                <h3 class="text-xl font-bold mb-3 text-gray-800">Resultat Omgång</h3>
-
-                <div class="flex gap-3 text-sm">
-                    <!-- Spelare 1 Resultat -->
-                    <div class="w-1/2 p-2 rounded-lg border-2 border-red-400 bg-red-50">
-                        <h4 class="font-bold text-red-700">Spelare 1</h4>
-                        <p class="text-xs">Tid: <strong id="res-actual-p1" class="float-right font-mono">--</strong></p>
-                        <div class="h-px bg-red-300 my-1"></div>
-                        <p class="font-bold">Skillnad: <strong id="res-deviation-p1" class="float-right font-mono text-base text-red-600">--</strong></p>
-                    </div>
-
-                    <!-- Spelare 2 Resultat -->
-                    <div class="w-1/2 p-2 rounded-lg border-2 border-blue-400 bg-blue-50">
-                        <h4 class="font-bold text-blue-700">Spelare 2</h4>
-                        <p class="text-xs">Tid: <strong id="res-actual-p2" class="float-right font-mono">--</strong></p>
-                        <div class="h-px bg-blue-300 my-1"></div>
-                        <p class="font-bold">Skillnad: <strong id="res-deviation-p2" class="float-right font-mono text-base text-blue-600">--</strong></p>
-                    </div>
-                </div>
-
-                <p id="round-winner-status" class="text-lg font-extrabold mt-3 p-2 rounded-lg bg-yellow-100 text-yellow-800"></p>
-            </div>
-
-            <!-- Slutresultat -->
-            <div id="final-result-area" class="p-4 rounded-xl shadow-2xl hidden bg-purple-100 border-4 border-purple-500">
-                <h3 class="text-2xl font-extrabold text-purple-800 mb-2">TOTAL VINNARE! 🎉</h3>
-                <p id="final-winner-status" class="text-xl font-bold text-gray-800 mb-2"></p>
-            </div>
-
-            <!-- Interaktionsknappar -->
-            <div class="space-y-3 mt-4">
-                <div class="flex gap-3">
-                    <button id="wait-button-p1" class="btn-base btn-p1 w-1/2" disabled> P1 Tryck NU! </button>
-                    <button id="wait-button-p2" class="btn-base btn-p2 w-1/2" disabled> P2 Tryck NU! </button>
-                </div>
-                <button id="start-button" class="btn-base btn-start w-full"> STARTA OMGÅNG </button>
-            </div>
-            
-            <button onclick="resetLocalState()" class="text-xs text-gray-500 mt-4 underline">Lämna match/Återställ</button>
-        </div>
-
-    </div>
 </body>
 </html>
