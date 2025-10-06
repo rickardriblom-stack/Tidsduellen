@@ -822,7 +822,7 @@
                             gameData = gameDoc.data();
                         }
 
-                        if (gameData && gameData.playerIds[0] === userId && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
+                        if (gameData && gameData.playerIds[0] === userId && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED' || gameData.status === 'SETUP')) {
                             // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
                             await startNextRoundOrMatch(gameData);
                         }
