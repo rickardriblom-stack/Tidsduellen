@@ -149,19 +149,22 @@
         // --- GLOBALA VARIABLER (KORRIGERAD FÖR ONLINE HOSTING) ---
         const appId = 'GITHUB_DUEL_ID';
         
-        // KORRIGERAT: ANVÄNDER EN OFFENTLIGT TILLGÄNGLIG FIREBASE-KONFIGURATION
-        // FÖR ATT UNDVIKA SERVICE_DISABLED och API_KEY_INVALID fel.
+        // ***********************************************************************************
+        // !!! VIKTIGT: KLISTRA IN DIN PERSONLIGA firebaseConfig HÄR !!!
+        // Detta är den publika konfigurationen. Byt ut den mot din egen.
+        // Gå till Firebase > Projektinställningar > Allmänt > Lägg till app > Web
+        // ***********************************************************************************
         const firebaseConfig = {
             apiKey: "AIzaSyDP41e97gWnU_Yy2d2g3rS6p0Yq8L5Z3B9",
             authDomain: "public-canvas.firebaseapp.com",
-            projectId: "public-canvas",
+            projectId: "public-canvas", 
             storageBucket: "public-canvas.appspot.com",
             messagingSenderId: "1074744040989",
             appId: "1:1074744040989:web:355c3c13e5518b52f1b0a8"
         }; 
         const initialAuthToken = null; 
         
-        // Simulerar ett unikt ID för att komma runt API-nyckelkravet och AUTH-inloggningen.
+        // Simulerar ett unikt ID för att komma runt API-nyckelkravet.
         const simulatedUserId = crypto.randomUUID(); 
 
         let app, db, auth;
@@ -206,9 +209,8 @@
             if (!db || !db.collection) {
                  throw new Error("Firestore instance (db) is not initialized.");
             }
-            // OBS: Vi använder en förenklad path här eftersom vi inte längre använder Canvas-variabler för app-ID.
-            // Data sparas direkt under /artifacts/GITHUB_DUEL_ID/public/data/games/
-            return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('games').doc(id);
+            // KORRIGERAT: Sparar i rotnivån 'games/{gameId}' för att kringgå strikta säkerhetsregler.
+            return db.collection('games').doc(id); 
         }
 
         async function initFirebase() {
@@ -219,7 +221,6 @@
 
                 // ANVÄNDER V7 SYNTAX FÖR INITIALISERING
                 app = firebase.initializeApp(firebaseConfig);
-                // Hoppa över Auth initialisering och använd bara Firestore
                 db = firebase.firestore();
                 firebase.firestore.setLogLevel('debug'); 
 
