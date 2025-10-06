@@ -69,15 +69,15 @@
                 </button>
             </div>
 
-            <!-- Ny sektion för klickbara, tillgängliga spel -->
-            <div id="available-games-area" class="text-left">
+            <!-- Borttagen sektion för klickbara, tillgängliga spel -->
+            <div id="available-games-area" class="text-left hidden">
                 <h3 class="text-sm font-bold text-gray-600 mb-2">Aktiva spel att gå med i:</h3>
                 <div id="available-games-list" class="space-y-2">
                     <!-- Spelknappar renderas här -->
                     <p class="text-xs text-gray-400">Inga spel hittades...</p>
                 </div>
             </div>
-            <!-- Slut ny sektion -->
+            <!-- Slut borttagen sektion -->
         </div>
 
         <!-- --- HUVUD SPELYTA (GAME) --- -->
@@ -247,8 +247,7 @@
                 startButton.disabled = false;
                 joinButton.disabled = false;
                 
-                // Starta lyssnare för tillgängliga spel direkt vid initiering
-                listenForAvailableGames();
+                // Tog bort listenForAvailableGames() här
 
                 // --- SLUT SIMULERAD INLOGGNING ---
 
@@ -271,58 +270,8 @@
 
         // --- NY FUNKTION: Hämta och visa spel i status 'SETUP' ---
 
-        let unsubscribeAvailableGames = null;
-
-        function listenForAvailableGames() {
-            if (unsubscribeAvailableGames) unsubscribeAvailableGames();
-
-            if (!db || !db.collection) {
-                 return; 
-            }
-            
-            // Query: Hämta alla spel där status == 'SETUP' och player1Id != nuvarande userId
-            const gamesCollection = db.collection('games');
-            const q = gamesCollection.where('status', '==', 'SETUP');
-            
-            unsubscribeAvailableGames = q.onSnapshot(snapshot => {
-                const games = [];
-                snapshot.forEach(doc => {
-                    const game = doc.data();
-                    // FILTER: 1. Visa INTE spelet om det startats av samma användare (userId)
-                    // FILTER: 2. Visa INTE spelet om player1Id saknas (även om det inte borde)
-                    if (game.player1Id !== userId && game.player1Id) {
-                        games.push(game);
-                    }
-                });
-                renderAvailableGames(games);
-            }, error => {
-                console.error("Error listening for available games:", error);
-                // Visar inte felet på skärmen, utan bara att inga spel kunde laddas.
-                availableGamesList.innerHTML = `<p class="text-xs text-red-500">Kunde inte hämta spel...</p>`;
-            });
-        }
-
-        function renderAvailableGames(games) {
-            availableGamesList.innerHTML = ''; 
-
-            if (games.length === 0) {
-                availableGamesList.innerHTML = `<p class="text-xs text-gray-400">Inga spel väntar på Spelare 2.</p>`;
-                return;
-            }
-
-            games.forEach(game => {
-                const gameButton = document.createElement('button');
-                gameButton.className = 'btn-base btn-p2 w-full text-sm py-2 px-4 flex justify-between items-center';
-                gameButton.innerHTML = `
-                    <span>Gå med i spel</span>
-                    <span class="font-mono bg-blue-700 text-white px-2 py-0.5 rounded-full">${game.gameCode}</span>
-                `;
-                // Klicka på knappen anropar joinExistingGame med koden
-                gameButton.onclick = () => joinExistingGame(game.gameCode); 
-                availableGamesList.appendChild(gameButton);
-            });
-        }
-
+        // Funktioner relaterade till automatisk spelhämtning är nu borttagna
+        
         // --- SPELHANTERING OCH DATABASFUNKTIONER ---
 
         /** Genererar en slumpmässig tid mellan 5.00 och 30.00 sekunder (i millisekunder). */
@@ -726,8 +675,7 @@
             p2TotalErrorDisplay.textContent = '0.00 s';
             startButton.textContent = 'Starta Nytt Spel (Spelare 1)';
             
-            // Återstarta lyssnaren för tillgängliga spel
-            listenForAvailableGames();
+            // BORTTAGEN: Anropas inte längre listenForAvailableGames()
         }
 
         // --- EVENT LISTENERS ---
@@ -736,7 +684,7 @@
             try {
                 
                 startButton.addEventListener('click', async () => {
-                    // Vi måste hämta spelet igen för att få aktuell status/data
+                    // KORRIGERING AV STARTKNAPPENS LOGIK:
                     let gameData = null;
                     if (gameId) {
                          const gameDoc = await getGameRef().get();
@@ -750,10 +698,11 @@
                         if (playerRole === 'P1') {
                             await startNextRoundOrMatch(gameData);
                         }
-                    } else {
+                    } else if (!gameId) { // Om det inte finns något aktivt spel, starta nytt
                         // STARTA NYTT SPEL
                         await createNewGame();
                     }
+                    // Annars (gameId finns men status är SETUP/WAITING_FOR_CLICKS), gör ingenting (knappen är disabled/väntar)
                 });
 
                 // KORRIGERING: Anrop joinExistingGame utan argument, som då hämtar från inputfältet
@@ -776,12 +725,14 @@
                     
                     const finalElapsedTime = performance.now() - localStartTime;
 
-                    if (playerNum === 1) {
+                    if (playerRole === 'P1' && playerNum === 1) { // Lade till explicit rollkontroll för att undvika dubbelklick
                         waitButtonP1.textContent = 'Klickat...';
                         waitButtonP1.disabled = true;
-                    } else {
+                    } else if (playerRole === 'P2' && playerNum === 2) {
                         waitButtonP2.textContent = 'Klickat...';
                         waitButtonP2.disabled = true;
+                    } else {
+                        return; // Fel roll klickade på fel knapp
                     }
                     
                     await recordClickTime(gameData, finalElapsedTime);
