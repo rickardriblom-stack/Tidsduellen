@@ -223,6 +223,8 @@
 
                     // --- SIMULERAD INLOGGNING ---
                     authStatus.textContent = `Ditt Användar-ID: ${userId.substring(0, 8)}...`;
+                    
+                    // FIX: Tvinga visning av SETUP-vyn direkt här
                     gameControlArea.classList.remove('hidden');
                     startSetupButton.disabled = false;
                     
@@ -636,6 +638,7 @@
                         if (!gameDoc.exists) throw "Spelet existerar inte.";
                         const data = gameDoc.data();
                         
+                        // FIX: Tillåt anslutning om status är SETUP, även om det är mer än 1 spelare
                         if (data.status !== 'SETUP') throw "Spelet har redan startat rundan.";
                         if (data.playerIds.includes(userId)) throw "Du är redan ansluten till detta spel.";
                         
@@ -746,11 +749,15 @@
                         lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                     };
                     // FIX: Efter match slut, vill vi att skaparen ska kunna ta bort gamla spelare, men för enkelhetens skull, behåller vi dem.
-                } else if (gameData.status === 'ROUND_FINISHED') {
-                    // Starta nästa runda
+                } else if (gameData.status === 'ROUND_FINISHED' || gameData.status === 'SETUP') { 
+                    // FIX: Tillåt start från SETUP och ROUND_FINISHED
+                    // Starta nästa runda (eller omgång 1)
+                    const isSetup = gameData.status === 'SETUP';
+                    const nextRound = isSetup ? 1 : gameData.round + 1;
+
                     update = {
                         status: 'WAITING_FOR_CLICKS',
-                        round: gameData.round + 1,
+                        round: nextRound,
                         // Återställ clickTimes, behåll totalErrors
                         clickTimes: gameData.playerIds.map(() => 0),
                         targetTimeMs: generateRandomTime(),
