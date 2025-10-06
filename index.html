@@ -690,29 +690,31 @@
                     
                     startButton.addEventListener('click', async () => {
                         // Hämta alltid den senaste datan från databasen innan vi agerar
+                        
+                        if (!gameId) { 
+                            // 1. STARTA NYTT SPEL
+                            await createNewGame();
+                            return;
+                        }
+
+                        // 2. HANTERA START AV NY OMGÅNG ELLER MATCH
                         let gameData = null;
                         let docExists = false;
                         
-                        if (gameId) {
-                            const gameDoc = await getGameRef().get();
-                            if (gameDoc.exists) {
-                                gameData = gameDoc.data();
-                                docExists = true;
-                            }
+                        const gameDoc = await getGameRef().get();
+                        if (gameDoc.exists) {
+                            gameData = gameDoc.data();
+                            docExists = true;
                         }
-
-                        if (docExists && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
+                        
+                        if (docExists && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
                             // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
-                            if (playerRole === 'P1') {
-                                await startNextRoundOrMatch(gameData);
-                            }
-                        } else if (!gameId) { 
-                            // STARTA NYTT SPEL (När gameId är null - dvs. i SETUP-läget, och inget doc finns)
-                            await createNewGame();
-                        } else if (gameId && gameData.status === 'SETUP') {
+                            await startNextRoundOrMatch(gameData);
+                        } else if (gameData.status === 'SETUP') {
                             // Gör ingenting, väntar på P2
                             alert("Ett spel är redan startat. Väntar på spelare 2!");
                         }
+                        // Annars, gör ingenting (om status är WAITING_FOR_CLICKS)
                     });
 
                     // KORRIGERING: Anrop joinExistingGame utan argument, som då hämtar från inputfältet
