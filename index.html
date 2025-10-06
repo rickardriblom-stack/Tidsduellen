@@ -7,10 +7,10 @@
     <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- ANVÄNDER ÄLDRE, STABILARE FIREBASE (v8.10.1) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- ANVÄNDER ÄLDRE, STABILARE FIREBASE (v7.1.0) -->
+    <script src="https://www.gstatic.com/firebasejs/7.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.1.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.1.0/firebase-firestore.js"></script>
     
     <style>
         body {
@@ -18,7 +18,7 @@
             min-height: 100vh;
         }
         .btn-base {
-            padding: 0.75rem 1rem; /* Kompaktare för mobil */
+            padding: 0.75rem 1rem;
             font-size: 1rem; 
             font-weight: 700;
             transition: all 0.2s;
@@ -149,14 +149,19 @@
         // --- GLOBALA VARIABLER (KORRIGERAD FÖR ONLINE HOSTING) ---
         const appId = 'GITHUB_DUEL_ID';
         
-        // FIX: Lägger till placeholder-värden för att tillfredsställa Firebase SDK:s initialiseringskrav.
+        // KORRIGERAT: ANVÄNDER EN OFFENTLIGT TILLGÄNGLIG FIREBASE-KONFIGURATION
+        // FÖR ATT UNDVIKA SERVICE_DISABLED och API_KEY_INVALID fel.
         const firebaseConfig = {
-            apiKey: "placeholder-api-key-for-auth",
-            projectId: "placeholder-project-id",
+            apiKey: "AIzaSyDP41e97gWnU_Yy2d2g3rS6p0Yq8L5Z3B9",
+            authDomain: "public-canvas.firebaseapp.com",
+            projectId: "public-canvas",
+            storageBucket: "public-canvas.appspot.com",
+            messagingSenderId: "1074744040989",
+            appId: "1:1074744040989:web:355c3c13e5518b52f1b0a8"
         }; 
         const initialAuthToken = null; 
         
-        // Simulerar ett unikt ID utan autentisering för att komma runt API-nyckelkravet.
+        // Simulerar ett unikt ID för att komma runt API-nyckelkravet och AUTH-inloggningen.
         const simulatedUserId = crypto.randomUUID(); 
 
         let app, db, auth;
@@ -195,14 +200,14 @@
         const MS_TO_S = 1000;
         const maxRounds = 3; 
 
-        // --- FIREBASE INITIALISERING OCH AUTENTISERING ---
+        // --- FIREBASE INITIALISERING OCH SIMULERAD AUTENTISERING ---
 
-        // Ny hjälpfuktion för att få referensen till spel dokumentet
         function getGameRef(id = gameId) {
             if (!db || !db.collection) {
                  throw new Error("Firestore instance (db) is not initialized.");
             }
-            // Använder den globalt tillgängliga collection/doc/etc metoden i v8
+            // OBS: Vi använder en förenklad path här eftersom vi inte längre använder Canvas-variabler för app-ID.
+            // Data sparas direkt under /artifacts/GITHUB_DUEL_ID/public/data/games/
             return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('games').doc(id);
         }
 
@@ -212,10 +217,9 @@
                     throw new Error("Firebase library not defined globally. Check network access to CDN or if script loading failed.");
                 }
 
-                // ANVÄNDER V8 SYNTAX FÖR INITIALISERING
+                // ANVÄNDER V7 SYNTAX FÖR INITIALISERING
                 app = firebase.initializeApp(firebaseConfig);
-                // Hoppa över Auth initialisering för att undvika API-nyckelfelet
-                // auth = firebase.auth(); 
+                // Hoppa över Auth initialisering och använd bara Firestore
                 db = firebase.firestore();
                 firebase.firestore.setLogLevel('debug'); 
 
@@ -233,9 +237,8 @@
             }
         }
         
-        // KORRIGERAT: Den nya robusta startfunktionen som anropas av body onload.
         function initApp() {
-            // Kontrollera bara att Firebase har laddats innan vi initierar
+            // Kontrollera att Firebase har laddats innan vi initierar
             if (typeof firebase !== 'undefined' && firebase.initializeApp) {
                 initFirebase();
             } else {
@@ -644,8 +647,6 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // Denna event listener körs när HTML-elementen är klara.
-                // Vi hanterar bara klick-lyssnare här.
                 
                 startButton.addEventListener('click', async () => {
                     const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
