@@ -147,7 +147,8 @@
                     <button id="wait-button-p1" class="btn-base btn-p1 w-1/2" disabled> P1 Tryck NU! </button>
                     <button id="wait-button-p2" class="btn-base btn-p2 w-1/2" disabled> P2 Tryck NU! </button>
                 </div>
-                <button id="start-button" class="btn-base btn-start w-full"> STARTA OMGÅNG </button>
+                <!-- FIX: Nytt ID för att separera från SETUP-knappen i den första kontrollen -->
+                <button id="start-next-round-button" class="btn-base btn-start w-full"> STARTA OMGÅNG </button>
             </div>
             
             <button onclick="resetLocalState()" class="text-xs text-gray-500 mt-4 underline">Lämna match/Återställ</button>
@@ -185,8 +186,10 @@
             // Globala elementreferenser
             const authStatus = document.getElementById('auth-status');
             const gameControlArea = document.getElementById('game-control-area');
+            const startSetupButton = document.getElementById('start-button'); // Knappen i SETUP-läget
+            const startNextRoundButton = document.getElementById('start-next-round-button'); // Knappen i GAME-läget
+            
             const joinGameCode = document.getElementById('join-game-code');
-            const startButton = document.getElementById('start-button');
             const joinButton = document.getElementById('join-button');
             const gameCodeDisplay = document.getElementById('game-code-display');
             const waitingForPlayer = document.getElementById('waiting-for-player');
@@ -245,7 +248,7 @@
                     userId = simulatedUserId;
                     authStatus.textContent = `Ditt Användar-ID: ${userId}`;
                     gameControlArea.classList.remove('hidden');
-                    startButton.disabled = false;
+                    startSetupButton.disabled = false;
                     joinButton.disabled = false;
                     
                     // --- SLUT SIMULERAD INLOGGNING ---
@@ -328,6 +331,7 @@
                 // Standardläge för knappar
                 waitButtonP1.disabled = true;
                 waitButtonP2.disabled = true;
+                startNextRoundButton.disabled = true; // Sätt knappen i GAME-läge som inaktiverad
 
                 if (gameData.status === 'SETUP') {
                     targetDisplay.textContent = 'Väntar på motståndare...';
@@ -373,16 +377,18 @@
                     if (playerRole === 'P1') {
                         // Kontrollera om det är sista omgången
                         const nextRound = gameData.round + 1;
+                        startNextRoundButton.disabled = false; // AKTIVERA KNAPPEN
+
                         if (nextRound > maxRounds) {
-                            startButton.textContent = 'SPELA IGEN (Reset)';
+                            // FIX: Tydlig text för nästa omgång
+                            startNextRoundButton.textContent = 'SPELA IGEN (Reset)';
                         } else {
                             // FIX: Tydlig text för nästa omgång
-                            startButton.textContent = `STARTA NÄSTA OMGÅNG (${nextRound} av ${maxRounds})`; 
+                            startNextRoundButton.textContent = `STARTA NÄSTA OMGÅNG (${nextRound} av ${maxRounds})`; 
                         }
-                        startButton.disabled = false;
                     } else {
-                        startButton.textContent = `Väntar på P1 att starta nästa runda...`;
-                        startButton.disabled = true;
+                        startNextRoundButton.textContent = `Väntar på P1 att starta nästa runda...`;
+                        startNextRoundButton.disabled = true;
                     }
 
                 } else if (gameData.status === 'MATCH_FINISHED') {
@@ -395,11 +401,11 @@
 
                     // Endast P1 startar om
                     if (playerRole === 'P1') {
-                        startButton.textContent = 'SPELA IGEN (Reset)';
-                        startButton.disabled = false;
+                        startNextRoundButton.textContent = 'SPELA IGEN (Reset)';
+                        startNextRoundButton.disabled = false; // AKTIVERA KNAPPEN
                     } else {
-                        startButton.textContent = 'Väntar på P1 att starta ny match...';
-                        startButton.disabled = true;
+                        startNextRoundButton.textContent = 'Väntar på P1 att starta ny match...';
+                        startNextRoundButton.disabled = true;
                     }
                 }
             }
@@ -679,9 +685,7 @@
                 gameCodeDisplay.textContent = 'Ingen match aktiv';
                 p1TotalErrorDisplay.textContent = '0.00 s';
                 p2TotalErrorDisplay.textContent = '0.00 s';
-                startButton.textContent = 'Starta Nytt Spel (Spelare 1)';
-                
-                // BORTTAGEN: Anropas inte längre listenForAvailableGames()
+                startSetupButton.textContent = 'Starta Nytt Spel (Spelare 1)';
             }
 
             // --- EVENT LISTENERS ---
@@ -689,29 +693,34 @@
             document.addEventListener('DOMContentLoaded', function() {
                 try {
                     
-                    startButton.addEventListener('click', async () => {
-                        // FIX: Hämta alltid senaste datan synkront för att undvika timingfel
-                        let gameData = null;
-                        
-                        if (gameId) {
-                            const gameDoc = await getGameRef().get();
-                            if (gameDoc.exists) {
-                                gameData = gameDoc.data();
-                            }
-                        }
-                        
+                    // Lyssna på knappen i SETUP-läge
+                    startSetupButton.addEventListener('click', async () => {
                         if (!gameId) { 
                             // 1. STARTA NYTT SPEL
                             await createNewGame();
-                            return;
-                        } else if (gameData && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
-                            // 2. STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
-                            await startNextRoundOrMatch(gameData);
-                        } else if (gameData && gameData.status === 'SETUP') {
-                            // Gör ingenting, väntar på P2
-                            alert("Ett spel är redan startat. Väntar på spelare 2!");
+                        } else {
+                            // Detta bör inte hända, men om det gör det, var alert.
+                            alert("Ett spel är redan startat. Vänligen lämna matchen först.");
                         }
-                        // Annars, gör ingenting (om status är WAITING_FOR_CLICKS)
+                    });
+
+                    // Lyssna på knappen i GAME-läge (Starta Nästa Omgång)
+                    startNextRoundButton.addEventListener('click', async () => {
+                        // FIX: Hämta alltid senaste datan synkront för att undvika timingfel
+                        let gameData = null;
+                        
+                        if (!gameId) return; // Gör inget om inget spel är aktivt
+
+                        const gameDoc = await getGameRef().get();
+                        if (gameDoc.exists) {
+                            gameData = gameDoc.data();
+                        }
+
+                        if (gameData && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
+                            // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
+                            await startNextRoundOrMatch(gameData);
+                        }
+                        // Annars: knappen är inaktiverad eller rollen är fel, gör inget.
                     });
 
                     // KORRIGERING: Anrop joinExistingGame utan argument, som då hämtar från inputfältet
