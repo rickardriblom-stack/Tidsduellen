@@ -7,7 +7,7 @@
     <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Laddar Firebase Globalt (KORRIGERING: Använder ej "import" för att undvika blockering) -->
+    <!-- Laddar Firebase Globalt -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
@@ -199,6 +199,7 @@
         async function initFirebase() {
             // Kontrollera att Firebase-funktionerna är globalt tillgängliga
             if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+                // Denna fallback kommer endast köras om skriptladdningen misslyckats
                 authStatus.textContent = "Fel: Kunde inte ladda Firebase-biblioteken. Kontrollera din internetanslutning.";
                 return;
             }
@@ -630,9 +631,9 @@
 
         // --- EVENT LISTENERS ---
 
-        document.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             initFirebase();
-            
+
             startButton.addEventListener('click', async () => {
                 const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
                 
@@ -684,7 +685,7 @@
             
             // Länka återställningsknappen
             document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
-        });
+        };
 
     </script>
 </body>
