@@ -236,6 +236,7 @@
                     }
 
                     // ANVÄNDER V7 SYNTAX FÖR INITIALISERING
+                    // FIX: Initierar appen korrekt med den klistrade konfigurationen
                     app = firebase.initializeApp(firebaseConfig);
                     db = firebase.firestore();
                     firebase.firestore.setLogLevel('debug'); 
@@ -689,28 +690,24 @@
                 try {
                     
                     startButton.addEventListener('click', async () => {
-                        // Hämta alltid den senaste datan från databasen INNAN vi agerar.
+                        // FIX: Hämta alltid senaste datan synkront för att undvika timingfel
+                        let gameData = null;
+                        
+                        if (gameId) {
+                            const gameDoc = await getGameRef().get();
+                            if (gameDoc.exists) {
+                                gameData = gameDoc.data();
+                            }
+                        }
                         
                         if (!gameId) { 
                             // 1. STARTA NYTT SPEL
                             await createNewGame();
                             return;
-                        }
-
-                        // 2. HANTERA START AV NY OMGÅNG ELLER MATCH
-                        let gameData = null;
-                        let docExists = false;
-                        
-                        const gameDoc = await getGameRef().get();
-                        if (gameDoc.exists) {
-                            gameData = gameDoc.data();
-                            docExists = true;
-                        }
-                        
-                        if (docExists && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
-                            // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
+                        } else if (gameData && playerRole === 'P1' && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED')) {
+                            // 2. STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
                             await startNextRoundOrMatch(gameData);
-                        } else if (gameData.status === 'SETUP') {
+                        } else if (gameData && gameData.status === 'SETUP') {
                             // Gör ingenting, väntar på P2
                             alert("Ett spel är redan startat. Väntar på spelare 2!");
                         }
