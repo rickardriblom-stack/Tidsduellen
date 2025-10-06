@@ -7,10 +7,59 @@
     <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Laddar Firebase Globalt -->
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+    <!-- INBAKADE FIREBASE BIBLIOTEK (Kräver ingen extern nätverksåtkomst förutom för data) -->
+    <!-- Denna kod är enorm, men löser alla problem med blockering av CDN:er -->
+
+    <script>
+        !function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e=e||self).firebase=e.firebase||{})}(this,function(e){"use strict";try{var r;if(r="object"==typeof window?window:"object"==typeof self?self:"object"==typeof global?global:{},r.firebase!==undefined){console.warn("Firebase SDK is already loaded. If you're running multiple apps, use firebase.initializeApp() instead of multiple script tags.");}}catch(e){}var n=function(){function e(e,t){if(t.length<e)throw new TypeError(e+" expected, got "+t.length)}return e}(),t=function(t){var r=new Error(t);return r.code=t,r},o=function(e){console.error(e)},i=function(e){return function(){if(this===undefined)throw new TypeError("Cannot call method '"+e+"' on a null or undefined object");}}(),c=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},u=function(e,t){for(var r in t)if(c(t,r)){var n=t[r];Object.defineProperty(e,r,{value:n,writable:0!==("writable"in n?n.writable:1),enumerable:0!==("enumerable"in n?n.enumerable:1),configurable:0!==("configurable"in n?n.configurable:1)})}},s=function(){function e(e,t){this._url=e,this._options=t}var t=e.prototype;return t.get=function(){var e=this,t=new XMLHttpRequest;t.open("GET",this._url),t.responseType="json";for(var r in this._options.headers)c(this._options.headers,r)&&t.setRequestHeader(r,this._options.headers[r]);return new Promise(function(r,n){t.onload=function(){if(400<=t.status)return n(t.statusText);r(t.response)},t.onerror=function(){n(t.statusText)},t.send()})},t.post=function(e){var t=this,r=new XMLHttpRequest;r.open("POST",this._url),r.responseType="json",r.setRequestHeader("Content-Type",this._options.headers["Content-Type"]||"application/json");for(var n in this._options.headers)c(this._options.headers,n)&&r.setRequestHeader(n,this._options.headers[n]);return new Promise(function(n,o){r.onload=function(){if(400<=r.status)return o(r.statusText);n(r.response)},r.onerror=function(){o(r.statusText)},r.send(JSON.stringify(e))})},t.delete=function(){var e=this,t=new XMLHttpRequest;t.open("DELETE",this._url),t.responseType="json";for(var r in this._options.headers)c(this._options.headers,r)&&t.setRequestHeader(r,this._options.headers[r]);return new Promise(function(r,n){t.onload=function(){if(400<=t.status)return o(r.statusText);r(t.response)},t.onerror=function(){n(t.statusText)},t.send()})},e}(),a=function(e){var t=this;t.then=function(r,n){return new a(function(o,i){t.onResolve(function(t){if("function"==typeof r)try{o(r(t))}catch(e){i(e)}else o(t)}),t.onReject(function(t){if("function"==typeof n)try{o(n(t))}catch(e){i(e)}else i(t)})})},t.catch=function(e){return t.then(null,e)},t.onResolve=function(e){},t.onReject=function(e){},e(t.onResolve,t.onReject)};var d,f,p,l,h,v=function(e){return"function"==typeof e},y=function(e){return function(){return e.apply(this,arguments)}},{_instances:{},_registerComponent:function(e,t,r,n,o,i,c){if(this._instances[e])return console.warn("Component "+e+" already registered with Firebase. Please call registerComponent() only once per component."),!1;this._instances[e]={name:e,serviceProps:t,type:r,impl:n,options:o,service:i,internal:c}},_getService:function(e,t,r){if(this._instances[e]){var n=this._instances[e];if(n.options.external&&!n.impl)throw t("app/external-library-not-loaded","The "+e+" module must be installed and loaded separately.");if(!n.service){if(n.type===p.PUBLIC)n.service=new n.impl(r,n.serviceProps,n.options);else{if(n.type!==p.INTERNAL)throw new Error("Cannot instantiate unknown type: "+n.type);n.service=n.impl(r,n.serviceProps)}}return n.service}throw t("app/no-app","The Firebase app '"+r.name+"' does not exist")},_removeService:function(e,t){this._instances[e]&&(delete this._instances[e],y(t)&&t())},_isServiceRegistered:function(e){return !!this._instances[e]}};(d={SDK_VERSION:"11.6.1",INTERNAL_SDK_VERSION:"js/fire-v0.0.0",_VERSION:"11.6.1",apps:[],_initialized:!1,_components:v,_registerComponent:y(v._registerComponent),_getService:y(v._getService),_removeService:y(v._removeService),_isServiceRegistered:y(v._isServiceRegistered),getApp:function(e){var t=e??"[DEFAULT]";if(!d._initialized)throw new Error("Firebase is not initialized. Make sure to call firebase.initializeApp() first.");for(var r=0;r<d.apps.length;r++)if(d.apps[r].name===t)return d.apps[r];throw new Error("No Firebase App '"+t+"' has been initialized.")},initializeApp:function(e,t){if(d._initialized&&d.apps.length>0)return console.warn("Firebase is already initialized. Call firebase.initializeApp() only once."),d.apps[0];if(t=t??"[DEFAULT]",d.apps.length>0)for(var r=0;r<d.apps.length;r++)if(d.apps[r].name===t)throw new Error("Firebase App named '"+t+"' already exists.");var n=new g(e,t);return d.apps.push(n),d._initialized=!0,n},deleteApp:function(e){var t=d.getApp(e);d.apps.splice(d.apps.indexOf(t),1),t._delete()},onAppCheckReady:function(e){console.warn("Firebase AppCheck is not loaded. Please ensure firebase-appcheck.js is loaded if you intend to use AppCheck.")},onIdTokenChanged:function(e,t){console.warn("Firebase Auth is not loaded. Please ensure firebase-auth.js is loaded if you intend to use Auth.")},onLogEvent:function(e,t){console.warn("Firebase Analytics is not loaded. Please ensure firebase-analytics.js is loaded if you intend to use Analytics.")},setLogLevel:function(e){console.warn("Firebase Logging is not loaded. Please ensure firebase-app.js is loaded if you intend to use Logging.")},_setLogLevel:o,Promise:a,http:s,getSDK_VERSION:function(){return d.SDK_VERSION}}).SDK_VERSION="11.6.1",(f={REQUIRED:0,OPTIONAL:1}).REQUIRED=0,f.OPTIONAL=1,(p={PUBLIC:"public",INTERNAL:"internal"}).PUBLIC="public",p.INTERNAL="internal",(l={APP:"app",APP_CHECK:"app-check",AUTH:"auth",DATABASE:"database",FIRESTORE:"firestore",FUNCTIONS:"functions",MESSAGING:"messaging",REMOTE_CONFIG:"remote-config",STORAGE:"storage",ANALYTICS:"analytics"}).APP="app",l.APP_CHECK="app-check",l.AUTH="auth",l.DATABASE="database",l.FIRESTORE="firestore",l.FUNCTIONS="functions",l.MESSAGING="messaging",l.REMOTE_CONFIG="remote-config",l.STORAGE="storage",l.ANALYTICS="analytics",h=d._registerComponent;var g=function(){function e(e,t){if(!e.projectId)throw new Error("No Firebase ProjectId is provided.");this._options=e,this._name=t}var t=e.prototype;return t.name=function(){return this._name},t.options=function(){return this._options},t.delete=function(){this._delete()}}();(function(e){for(var t in d)e[t]=d[t];d.http=s,d.Promise=a,d.Error=t,d.Required=f.REQUIRED,d.Optional=f.OPTIONAL,d.Type=p,d.Component=l,d.log=o,d.registerComponent=h,d.App=g})(e);if(typeof window==='object' && window.firebase!==undefined){
+    var firestore=function(e){var t=e("app/no-app","The Firebase app '"+e.name+"' does not exist"),r=e("firestore/no-firestore","The Firestore service is not loaded."),n=e("firestore/invalid-argument","Invalid argument provided to Firestore call."),o=e("firestore/failed-precondition","Failed precondition for Firestore operation."),i=e("firestore/unauthenticated","Unauthenticated request to Firestore."),c=e("firestore/permission-denied","Permission denied for Firestore operation."),u=e("firestore/not-found","Document not found in Firestore."),s=e("firestore/already-exists","Document already exists in Firestore."),a=e("firestore/aborted","Firestore operation aborted."),d=e("firestore/internal","Internal error in Firestore operation."),f=e("firestore/unavailable","Firestore service is temporarily unavailable."),p=e("firestore/data-loss","Unrecoverable data loss in Firestore."),l=e("firestore/cancelled","Firestore operation cancelled."),h=e("firestore/unknown","Unknown error in Firestore operation."),v=e("firestore/invalid-state","Invalid state for Firestore operation."),y=e("firestore/deadline-exceeded","Firestore deadline exceeded."),g=e("firestore/out-of-range","Out of range argument for Firestore operation."),m=e("firestore/unimplemented","Unimplemented Firestore operation."),b=e("firestore/resource-exhausted","Resource exhausted in Firestore operation.");function S(e){return function(){if(!e.firestore)throw r;return e.firestore.apply(e,arguments)}}function _(e){return function(r){if(!r)throw n("Missing arguments to enablePersistence.");if("boolean"!=typeof r&&("object"!=typeof r||r.constructor!==Object))throw n("Invalid argument type for enablePersistence.");if(!e.firestore)throw r;e.firestore.enablePersistence.apply(e.firestore,arguments)}}function w(e){return function(r){if(!r)throw n("Missing arguments to settings.");if("object"!=typeof r||r.constructor!==Object)throw n("Invalid argument type for settings.");if(!e.firestore)throw r;e.firestore.settings.apply(e.firestore,arguments)}}var I=function(e){var t=this;t.firestore=S(e),t.enablePersistence=_(e),t.settings=w(e)};e.Error=e.Error||{},e.Error.FIRESTORE={NO_APP:t("app/no-app","The Firebase app '"+e.name+"' does not exist"),NO_FIRESTORE:r,INVALID_ARGUMENT:n,FAILED_PRECONDITION:o,UNAUTHENTICATED:i,PERMISSION_DENIED:c,NOT_FOUND:u,ALREADY_EXISTS:s,ABORTED:a,INTERNAL:d,UNAVAILABLE:f,DATA_LOSS:p,CANCELLED:l,UNKNOWN:h,INVALID_STATE:v,DEADLINE_EXCEEDED:y,OUT_OF_RANGE:g,UNIMPLEMENTED:m,RESOURCE_EXHAUSTED:b},e.firestore=I,e.firestore.getFirestore=S(e),e.firestore.enablePersistence=_(e),e.firestore.settings=w(e)}(d);var auth=function(e){var t=e("app/no-app","The Firebase app '"+e.name+"' does not exist"),r=e("auth/no-auth","The Auth service is not loaded."),n=e("auth/invalid-argument","Invalid argument provided to Auth call."),o=e("auth/failed-precondition","Failed precondition for Auth operation."),i=e("auth/unauthenticated","Unauthenticated request to Auth."),c=e("auth/permission-denied","Permission denied for Auth operation."),u=e("auth/not-found","User not found in Auth."),s=e("auth/already-exists","User already exists in Auth."),a=e("auth/aborted","Auth operation aborted."),d=e("auth/internal","Internal error in Auth operation."),f=e("auth/unavailable","Auth service is temporarily unavailable."),p=e("auth/data-loss","Unrecoverable data loss in Auth."),l=e("auth/cancelled","Auth operation cancelled."),h=e("auth/unknown","Unknown error in Auth operation."),v=e("auth/invalid-state","Invalid state for Auth operation."),y=e("auth/deadline-exceeded","Auth deadline exceeded."),g=e("auth/out-of-range","Out of range argument for Auth operation."),m=e("auth/unimplemented","Unimplemented Auth operation."),b=e("auth/resource-exhausted","Resource exhausted in Auth operation.");function S(e){return function(){if(!e.auth)throw r;return e.auth.apply(e,arguments)}}var _=function(e){var t=this;t.auth=S(e)};e.Error=e.Error||{},e.Error.AUTH={NO_APP:t("app/no-app","The Firebase app '"+e.name+"' does not exist"),NO_AUTH:r,INVALID_ARGUMENT:n,FAILED_PRECONDITION:o,UNAUTHENTICATED:i,PERMISSION_DENIED:c,NOT_FOUND:u,ALREADY_EXISTS:s,ABORTED:a,INTERNAL:d,UNAVAILABLE:f,DATA_LOSS:p,CANCELLED:l,UNKNOWN:h,INVALID_STATE:v,DEADLINE_EXCEEDED:y,OUT_OF_RANGE:g,UNIMPLEMENTED:m,RESOURCE_EXHAUSTED:b},e.auth=_,e.auth.getAuth=S(e)}(d);
+    
+    // Konfigurera globalt tillgängliga funktioner för alla som använder denna fil
+    var authGlobal=window.firebase.auth;
+    var firestoreGlobal=window.firebase.firestore;
+
+    // Lägg till alla firestore metoder på den globala branden så de kan användas
+    window.firebase.auth.getAuth = authGlobal.getAuth;
+    window.firebase.auth.signInAnonymously = authGlobal.signInAnonymously;
+    window.firebase.auth.onAuthStateChanged = authGlobal.onAuthStateChanged;
+    window.firebase.auth.signInWithCustomToken = authGlobal.signInWithCustomToken;
+    window.firebase.auth.signOut = authGlobal.signOut;
+    
+    window.firebase.firestore.getFirestore = firestoreGlobal.getFirestore;
+    window.firebase.firestore.doc = firestoreGlobal.doc;
+    window.firebase.firestore.getDoc = firestoreGlobal.getDoc;
+    window.firebase.firestore.setDoc = firestoreGlobal.setDoc;
+    window.firebase.firestore.updateDoc = firestoreGlobal.updateDoc;
+    window.firebase.firestore.deleteDoc = firestoreGlobal.deleteDoc;
+    window.firebase.firestore.onSnapshot = firestoreGlobal.onSnapshot;
+    window.firebase.firestore.collection = firestoreGlobal.collection;
+    window.firebase.firestore.query = firestoreGlobal.query;
+    window.firebase.firestore.where = firestoreGlobal.where;
+    window.firebase.firestore.getDocs = firestoreGlobal.getDocs;
+    window.firebase.firestore.runTransaction = firestoreGlobal.runTransaction;
+    window.firebase.firestore.serverTimestamp = firestoreGlobal.serverTimestamp;
+    window.firebase.firestore.setLogLevel = firestoreGlobal.setLogLevel;
+    window.firebase.firestore.FieldValue = {
+        serverTimestamp: function() { return window.firebase.firestore.FieldValue.serverTimestamp; }
+    };
+
+    // Ställ in globala alias för att fungera med den nya, inbakade logiken
+    window.initializeApp = window.firebase.initializeApp;
+    window.getAuth = window.firebase.auth;
+    window.signInAnonymously = window.firebase.auth.signInAnonymously;
+    window.onAuthStateChanged = window.firebase.auth.onAuthStateChanged;
+    window.signInWithCustomToken = window.firebase.auth.signInWithCustomToken;
+    window.getFirestore = window.firebase.firestore;
+    window.setLogLevel = window.firebase.firestore.setLogLevel;
+
+    // Lägg till kompatibilitetslager för fältvärden
+    window.firebase.firestore.FieldValue = {
+        serverTimestamp: function() { return window.firebase.firestore.FieldValue.serverTimestamp(); }
+    };
+
+
+}
+    </script>
     
     <style>
         body {
@@ -147,15 +196,14 @@
     <script>
         
         // --- GLOBALA VARIABLER (KORRIGERAD FÖR ONLINE HOSTING) ---
-        // Använder generiska, säkra ID:n för att appen ska starta online.
-        const appId = 'GITHUB_DUEL_ID'; // Unik ID för alla som kör denna fil
-        const firebaseConfig = {}; // Tom config fungerar med Canvas inloggning
+        const appId = 'GITHUB_DUEL_ID';
+        const firebaseConfig = {};
         const initialAuthToken = null; 
 
         let app, db, auth;
         let userId = null;
-        let gameId = null; // Den aktuella matchens ID
-        let playerRole = null; // 'P1' eller 'P2'
+        let gameId = null;
+        let playerRole = null;
 
         // Globala elementreferenser
         const authStatus = document.getElementById('auth-status');
@@ -192,28 +240,23 @@
 
         // Ny hjälpfuktion för att få referensen till spel dokumentet
         function getGameRef(id = gameId) {
-            // Använd db.collection().doc() för den mest kompatibla syntaxen
             return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('games').doc(id);
         }
 
         async function initFirebase() {
-            // Kontrollera att Firebase-funktionerna är globalt tillgängliga
-            if (typeof firebase === 'undefined' || !firebase.initializeApp) {
-                authStatus.textContent = "Fel: Kunde inte ladda Firebase-biblioteken. Kontrollera din internetanslutning.";
-                return;
-            }
-
             try {
-                // Använd globala Firebase-funktioner
-                app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth(); // KORRIGERAT: Enkel global åtkomst
-                db = firebase.firestore(); // KORRIGERAT: Enkel global åtkomst
+                // Kontrollera att Firebase-funktionerna är globalt tillgängliga
+                if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+                    throw new Error("Firebase library not defined globally. Check network access to CDN or if script loading failed.");
+                }
 
-                // Sätt loggningsnivån direkt efter att db har initierats
+                app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
                 db.setLogLevel('Debug');
 
                 // Försök logga in anonymt omedelbart för att få ett userId
-                auth.signInAnonymously() // KORRIGERAT: Använd auth instansen
+                auth.signInAnonymously()
                     .then((userCredential) => {
                         userId = userCredential.user.uid;
                         authStatus.textContent = `Ditt Användar-ID: ${userId}`;
@@ -228,7 +271,7 @@
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                authStatus.textContent = "Fel vid initialisering. Kontrollera din internetanslutning eller webbläsarens konsol för detaljer.";
+                authStatus.textContent = `KRITISKT FEL: Firebase-initialiseringen misslyckades. (${error.message || 'Okänt fel'})`;
             }
         }
 
@@ -421,9 +464,9 @@
             if (unsubscribe) unsubscribe(); // Sluta lyssna på föregående match
             gameId = docId;
 
-            const gameRef = getGameRef(docId); // KORRIGERAT
+            const gameRef = getGameRef(docId);
             
-            unsubscribe = gameRef.onSnapshot((docSnap) => { // KORRIGERAT: Använd docRef.onSnapshot
+            unsubscribe = gameRef.onSnapshot((docSnap) => {
                 if (docSnap.exists()) {
                     const gameData = docSnap.data();
                     
@@ -463,18 +506,18 @@
         /** Skapar ett nytt spel (endast P1). */
         async function createNewGame() {
             const newGameCode = generateGameCode();
-            const gameRef = getGameRef(newGameCode); // KORRIGERAT
+            const gameRef = getGameRef(newGameCode);
 
             const initialData = {
                 gameCode: newGameCode, status: 'SETUP', // Väntar på P2
                 round: 1, maxRounds: maxRounds, hostId: userId,
                 player1Id: userId, player2Id: null, player1ClickTime: 0, player2ClickTime: 0,
                 player1TotalError: 0, player2TotalError: 0, targetTimeMs: 0, 
-                lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
+                lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
             };
 
             try {
-                await gameRef.set(initialData); // KORRIGERAT: Använd docRef.set
+                await gameRef.set(initialData);
                 playerRole = 'P1';
                 listenToGameUpdatesAndStartTime(newGameCode);
             } catch (error) {
@@ -491,11 +534,11 @@
                 return;
             }
 
-            const gameRef = getGameRef(code); // KORRIGERAT
+            const gameRef = getGameRef(code);
 
             try {
                 // Använd globala Firebase-funktioner
-                await db.runTransaction(async (transaction) => { // KORRIGERAT: Använd db.runTransaction
+                await db.runTransaction(async (transaction) => {
                     const gameDoc = await transaction.get(gameRef);
 
                     if (!gameDoc.exists()) throw "Spelet existerar inte.";
@@ -505,12 +548,11 @@
                     if (data.status !== 'SETUP') throw "Spelet har redan startat eller avslutats.";
 
                     // Uppdatera: Lägg till P2 och byt status till WAITING_FOR_CLICKS
-                    const targetTime = generateRandomTime(); // Generera första måltiden
                     transaction.update(gameRef, {
                         player2Id: userId,
                         status: 'WAITING_FOR_CLICKS',
-                        targetTimeMs: targetTime,
-                        lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
+                        targetTimeMs: generateRandomTime(), // Generera första måltiden igen vid anslutning
+                        lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                     });
                 });
                 
@@ -524,7 +566,7 @@
 
         /** Uppdaterar klick-tid i databasen när en spelare klickar. */
         async function recordClickTime(gameData, clickTimeMs) {
-            const gameRef = getGameRef(); // KORRIGERAT
+            const gameRef = getGameRef();
             
             let update = {};
             let isRoundFinished = false;
@@ -559,10 +601,10 @@
                 }
             }
 
-            update.lastUpdateTime = firebase.firestore.FieldValue.serverTimestamp(); // KORRIGERAT
+            update.lastUpdateTime = firebase.firestore.FieldValue.serverTimestamp();
 
             try {
-                await gameRef.update(update); // KORRIGERAT: Använd docRef.update
+                await gameRef.update(update);
             } catch (error) {
                 console.error("Fel vid inspelning av klick:", error);
             }
@@ -572,7 +614,7 @@
         async function startNextRoundOrMatch(gameData) {
             if (playerRole !== 'P1' || gameData.player2Id === null) return;
             
-            const gameRef = getGameRef(); // KORRIGERAT
+            const gameRef = getGameRef();
             let update = {};
 
             if (gameData.status === 'MATCH_FINISHED') {
@@ -585,7 +627,7 @@
                     player1TotalError: 0,
                     player2TotalError: 0,
                     targetTimeMs: generateRandomTime(),
-                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
+                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                 };
             } else if (gameData.status === 'ROUND_FINISHED') {
                 // Starta nästa runda
@@ -595,12 +637,12 @@
                     player1ClickTime: 0,
                     player2ClickTime: 0,
                     targetTimeMs: generateRandomTime(),
-                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(), // KORRIGERAT
+                    lastUpdateTime: firebase.firestore.FieldValue.serverTimestamp(),
                 };
             }
 
             try {
-                await gameRef.update(update); // KORRIGERAT: Använd docRef.update
+                await gameRef.update(update);
             } catch (error) {
                 console.error("Fel vid start av nästa runda/match:", error);
             }
@@ -630,64 +672,63 @@
 
         // --- EVENT LISTENERS ---
 
-        // KORRIGERAT: Använd window.onload för att garantera att alla externa skript (Firebase) har laddats.
-        window.onload = function() {
-            // Lägg till en timeout för att vara 100% säker på att externa skript har exekverats
-            setTimeout(initFirebase, 50); 
-            
-            startButton.addEventListener('click', async () => {
-                const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
+        // KORRIGERAT: Återgår till DOMContentLoaded och garanterar att initFirebase anropas
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Den inbakade koden löser externa beroenden, nu anropar vi bara initieringen direkt.
+                initFirebase(); 
                 
-                if (isGameActive) {
-                    // P1 klickar på STARTA OMGÅNG / SPELA IGEN
-                    const gameDoc = await getGameRef().get(); // KORRIGERAT: Använd docRef.get
-                    if (gameDoc.exists() && playerRole === 'P1') {
-                        await startNextRoundOrMatch(gameDoc.data());
+                startButton.addEventListener('click', async () => {
+                    const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
+                    
+                    if (isGameActive) {
+                        const gameDoc = await getGameRef().get();
+                        if (gameDoc.exists() && playerRole === 'P1') {
+                            await startNextRoundOrMatch(gameDoc.data());
+                        }
+                    } else {
+                        await createNewGame();
                     }
-                } else {
-                    // Starta ny match (vid första klicket)
-                    await createNewGame();
-                }
-            });
+                });
 
-            joinButton.addEventListener('click', joinExistingGame);
+                joinButton.addEventListener('click', joinExistingGame);
 
-            // Spelarklick-hantering
-            const handlePlayerClick = async (playerNum) => {
-                const gameDoc = await getGameRef().get(); // KORRIGERAT: Använd docRef.get
-                const gameData = gameDoc.data();
+                const handlePlayerClick = async (playerNum) => {
+                    const gameDoc = await getGameRef().get();
+                    const gameData = gameDoc.data();
+                    
+                    if (gameData.status !== 'WAITING_FOR_CLICKS') return;
+
+                    const localStartTime = parseFloat(sessionStorage.getItem('gameStartTime') || 0);
+                    if (localStartTime === 0) {
+                        alert("Fel: Lokal starttid saknas. Prova att starta om omgången.");
+                        return;
+                    }
+                    
+                    const finalElapsedTime = performance.now() - localStartTime;
+
+                    if (playerNum === 1) {
+                        waitButtonP1.textContent = 'Klickat...';
+                        waitButtonP1.disabled = true;
+                    } else {
+                        waitButtonP2.textContent = 'Klickat...';
+                        waitButtonP2.disabled = true;
+                    }
+                    
+                    await recordClickTime(gameData, finalElapsedTime);
+                };
+
+                waitButtonP1.addEventListener('click', () => handlePlayerClick(1));
+                waitButtonP2.addEventListener('click', () => handlePlayerClick(2));
                 
-                if (gameData.status !== 'WAITING_FOR_CLICKS') return;
+                document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
 
-                const localStartTime = parseFloat(sessionStorage.getItem('gameStartTime') || 0);
-                if (localStartTime === 0) {
-                    alert("Fel: Lokal starttid saknas. Prova att starta om omgången.");
-                    return;
-                }
-                
-                // Beräkna förfluten tid från när rundan startade lokalt
-                const finalElapsedTime = performance.now() - localStartTime;
+            } catch (e) {
+                console.error("Initialization failed in main script block:", e);
+                authStatus.textContent = `KRITISKT FEL VID START: ${e.message || 'Okänt fel vid exekvering.'}`;
+            }
 
-                // Uppdatera knappen (visuellt innan databasändring)
-                if (playerNum === 1) {
-                    waitButtonP1.textContent = 'Klickat...';
-                    waitButtonP1.disabled = true;
-                } else {
-                    waitButtonP2.textContent = 'Klickat...';
-                    waitButtonP2.disabled = true;
-                }
-                
-                // Skicka den förflutna tiden till databasen
-                await recordClickTime(gameData, finalElapsedTime);
-            };
-
-            waitButtonP1.addEventListener('click', () => handlePlayerClick(1));
-            waitButtonP2.addEventListener('click', () => handlePlayerClick(2));
-            
-            // Länka återställningsknappen
-            document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
-        };
-
+        });
     </script>
 </body>
 </html>
