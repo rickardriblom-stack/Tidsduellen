@@ -62,7 +62,8 @@
             </button>
 
             <div class="flex gap-2">
-                <input id="join-game-code" type="text" maxlength="4" placeholder="Ange Spelkod" class="input-code w-1/3">
+                <!-- Ändrad maxlängd till 3 och platshållare -->
+                <input id="join-game-code" type="text" maxlength="3" placeholder="Ange 3-siffrig kod" class="input-code w-1/3">
                 <button id="join-button" class="btn-base btn-p2 w-2/3" disabled>
                     Gå med i Spel (Spelare 2)
                 </button>
@@ -151,7 +152,6 @@
         
         // ***********************************************************************************
         // !!! VIKTIGT: KLISTRA IN DIN PERSONLIGA firebaseConfig HÄR !!!
-        // Klistra in hela objektet från din Firebase Project Settings > General > Web App
         // ***********************************************************************************
         const firebaseConfig = {
   apiKey: "AIzaSyAmsrwDhNmVZsmYmnGEmA9c7nznBTj1G7M",
@@ -209,8 +209,13 @@
             if (!db || !db.collection) {
                  throw new Error("Firestore instance (db) is not initialized.");
             }
-            // KORRIGERAT: Sparar i rotnivån 'games/{gameId}' för att kringgå strikta säkerhetsregler.
+            // Sparar i rotnivån 'games/{gameId}'
             return db.collection('games').doc(id); 
+        }
+
+        // KORRIGERAD: Genererar en 3-siffrig kod (000-999)
+        function generateGameCode() {
+            return String(Math.floor(Math.random() * 1000)).padStart(3, '0');
         }
 
         async function initFirebase() {
@@ -278,11 +283,6 @@
             }
 
             return `${deviationSign}${deviationSecondsAbsolute} s`;
-        }
-
-        /** Genererar en enkel 4-bokstavig kod. */
-        function generateGameCode() {
-            return Math.random().toString(36).substring(2, 6).toUpperCase();
         }
 
         /** Uppdaterar UI baserat på spelarroll och spelstatus. */
@@ -505,8 +505,10 @@
         /** Ansluter till ett befintligt spel (P2). */
         async function joinExistingGame() {
             const code = joinGameCode.value.trim().toUpperCase();
-            if (code.length !== 4) {
-                alert("Ange en 4-teckens spelkod.");
+            
+            // KORRIGERAD VALIDERING: Kontrollera 3 siffror
+            if (code.length !== 3 || isNaN(code)) {
+                alert("Ange en 3-siffrig numerisk kod.");
                 return;
             }
 
