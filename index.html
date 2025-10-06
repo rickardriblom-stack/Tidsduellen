@@ -7,10 +7,10 @@
     <!-- Laddar Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- ÅTERSTÄLLT: Använder externa CDN-länkar (v8.10.1) för att undvika inbakade Syntaxfel. -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- KORRIGERAT: Bytte Firebase CDN till opartisk CDN (cdnjs) för att undvika blockeringar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.3/firebase-firestore.js"></script>
     
     <style>
         body {
@@ -42,6 +42,7 @@
         .hidden { display: none; }
     </style>
 </head>
+<!-- STARTAR INTE APPEN HÄR! -->
 <body class="bg-gray-100 flex items-center justify-start min-h-screen p-4">
 
     <div id="app-container" class="w-full max-w-lg bg-white p-4 md:p-6 rounded-xl shadow-2xl text-center mx-auto mt-4 mb-4">
@@ -150,7 +151,6 @@
         const appId = 'GITHUB_DUEL_ID';
         
         // FIX: Lägger till placeholder-värden för att tillfredsställa Firebase SDK:s initialiseringskrav.
-        // Detta löser felet "Your API key is invalid".
         const firebaseConfig = {
             apiKey: "placeholder-api-key-for-auth",
             projectId: "placeholder-project-id",
@@ -206,36 +206,30 @@
 
         async function initFirebase() {
             try {
+                // KONTROLL: Nu använder vi de moderna skripten, men behåller en robust kontroll.
                 if (typeof firebase === 'undefined' || !firebase.initializeApp) {
-                    throw new Error("Firebase library not defined globally. Script loading failed internally.");
+                    throw new Error("Firebase library not defined globally. Check network access to CDN or if script loading failed.");
                 }
 
                 app = firebase.initializeApp(firebaseConfig);
                 auth = firebase.auth();
                 db = firebase.firestore();
-                // setLogLevel finns i v8 via firebase.firestore.setLogLevel(level)
+                // setLogLevel finns i v11 via firebase.firestore.setLogLevel(level)
                 firebase.firestore.setLogLevel('debug'); 
 
-                // FIX: Kapsla in inloggningen i en timeout för att säkerställa att Auth-tjänsten hinner initialiseras
-                setTimeout(async () => {
-                    if (auth) {
-                        auth.signInAnonymously()
-                            .then((userCredential) => {
-                                userId = userCredential.user.uid;
-                                authStatus.textContent = `Ditt Användar-ID: ${userId}`;
-                                gameControlArea.classList.remove('hidden');
-                                startButton.disabled = false;
-                                joinButton.disabled = false;
-                            })
-                            .catch((error) => {
-                                console.error("Firebase Auth Error (Timeout Check):", error);
-                                authStatus.textContent = "Autentiseringsfel. Kan inte starta spel.";
-                            });
-                    } else {
-                         // Skulle inte hända om initFirebase lyckats, men för säkerhets skull.
-                         authStatus.textContent = "Kritiskt: Auth-tjänsten startade inte.";
-                    }
-                }, 50); // 50ms väntetid
+                // INLOGGNING: Vi förlitar oss på signInAnonymously()
+                auth.signInAnonymously()
+                    .then((userCredential) => {
+                        userId = userCredential.user.uid;
+                        authStatus.textContent = `Ditt Användar-ID: ${userId}`;
+                        gameControlArea.classList.remove('hidden');
+                        startButton.disabled = false;
+                        joinButton.disabled = false;
+                    })
+                    .catch((error) => {
+                        console.error("Firebase Auth Error:", error);
+                        authStatus.textContent = "Autentiseringsfel. Kan inte starta spel.";
+                    });
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
@@ -243,21 +237,14 @@
             }
         }
         
-        function checkAndInitFirebase() {
-             // Använder en mer aggressiv kontroll med setTimeout om Firebase inte laddades omedelbart
-             // Detta hjälper mot race conditions vid nätverksladdning.
+        // KORRIGERAT: Den nya robusta startfunktionen som anropas av body onload.
+        function initApp() {
+            // Kontrollera bara att Firebase har laddats innan vi initierar
             if (typeof firebase !== 'undefined' && firebase.initializeApp) {
                 initFirebase();
             } else {
-                setTimeout(function() {
-                    if (typeof firebase !== 'undefined' && firebase.initializeApp) {
-                        initFirebase();
-                    } else {
-                         // Slutgiltigt fel om det inte lyckas efter väntan
-                        document.getElementById('auth-status').textContent = 'KRITISKT FEL: Firebase-biblioteken kunde inte laddas. Kontrollera nätverksåtkomst till CDN:er.';
-                        console.error("Firebase library not defined after aggressive check.");
-                    }
-                }, 100); // 100ms väntetid
+                document.getElementById('auth-status').textContent = 'KRITISKT FEL: Firebase-biblioteken kunde inte laddas. Kontrollera nätverksåtkomst till CDN:er.';
+                console.error("Firebase library not defined after aggressive check.");
             }
         }
 
@@ -661,8 +648,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                // Anropa den robusta checkAndInitFirebase istället för initFirebase direkt.
-                checkAndInitFirebase(); 
+                // Denna event listener körs när HTML-elementen är klara.
+                // Vi hanterar bara klick-lyssnare här.
                 
                 startButton.addEventListener('click', async () => {
                     const isGameActive = gameId && (document.getElementById('start-button').textContent.includes('STARTA OMGÅNG') || document.getElementById('start-button').textContent.includes('SPELA IGEN'));
@@ -715,6 +702,13 @@
             }
 
         });
+        
+        // Den globala onload-funktionen som garanterar att allt är laddat
+        window.onload = function() {
+            // Vi kallar den nya kontrollfunktionen
+            initApp();
+        };
+
     </script>
 </body>
 </html>
