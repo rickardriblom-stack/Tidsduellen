@@ -284,12 +284,19 @@
 
             async function initFirebase() {
                 try {
+                    // FIX: Lägg till kontroll för att inte initiera två gånger
+                    if (firebase.apps.length > 0) {
+                        console.warn("Firebase already initialized. Skipping.");
+                        // Sätt UI i startläge igen om den redan är igång
+                        resetLocalState(); 
+                        return;
+                    }
+
                     if (typeof firebase === 'undefined' || !firebase.initializeApp) {
                         throw new Error("Firebase library not defined globally. Check network access to CDN or if script loading failed.");
                     }
 
                     // ANVÄNDER V7 SYNTAX FÖR INITIALISERING
-                    // FIX: Initierar appen korrekt med den klistrade konfigurationen
                     app = firebase.initializeApp(firebaseConfig);
                     db = firebase.firestore();
                     firebase.firestore.setLogLevel('debug'); 
