@@ -515,7 +515,7 @@
                     playerNum: index + 1,
                     totalError: gameData.totalErrors[index] || 0
                 }));
-                scores.sort((a, b) => a.totalError - b.totalError);
+                scores.sort((a, b) => a.totalError - b.totalToError);
 
                 let finalWinnerText = '';
                 if (scores.length > 0) {
