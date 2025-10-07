@@ -162,6 +162,7 @@
             let playerIndex = -1; // Det här är viktigt: Spelarens index i playerIds-arrayen
 
             // Globala elementreferenser
+            // VIKTIGT: Dessa definieras NU INNAN FUNKTIONER ANROPAS
             const authStatus = document.getElementById('auth-status');
             const gameControlArea = document.getElementById('game-control-area');
             const startSetupButton = document.getElementById('start-button'); // Knappen i SETUP-läget
@@ -179,6 +180,7 @@
             const totalScoreboard = document.getElementById('total-scoreboard'); // Nytt: För total poängtavla
             const roundResultsDisplay = document.getElementById('round-results-display'); // Nytt: För resultat per omgång
             const availableGamesList = document.getElementById('available-games-list'); // Referens för listan
+            const mainGameArea = document.getElementById('main-game-area'); // Måste definieras globalt
 
             // Per-omgång resultat element (behövs inte längre, renderas dynamiskt)
             
@@ -787,16 +789,20 @@
                 resetGameId();
                 sessionStorage.removeItem('gameStartTime');
                 mainGameArea.classList.add('hidden');
-                gameControlArea.classList.remove('hidden');
+                
+                // FIX: Tvinga visa gameControlArea här
+                gameControlArea.classList.remove('hidden'); 
+                
                 document.getElementById('app-title').classList.remove('hidden');
                 document.getElementById('app-description').classList.remove('hidden');
+                
                 // Återställ UI till grundläge
                 totalScoreboard.innerHTML = '<p class="text-xs text-gray-400">Resultat visas när matchen är slut.</p>';
                 availableGamesList.innerHTML = '<p class="text-xs text-gray-400">Hämtar...</p>';
                 startSetupButton.disabled = false;
                 
                 // Anropa init för att starta om processen och hämta tillgängliga spel
-                initApp(); 
+                // OBS: initApp anropas via window.onload, så vi behöver inte kalla den här.
             }
 
             // --- EVENT LISTENERS ---
