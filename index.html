@@ -161,7 +161,7 @@
             let playerRole = null; // Ej strikt nödvändigt med flera spelare, men behålls för vissa UI-kontroller
             let playerIndex = -1; // Det här är viktigt: Spelarens index i playerIds-arrayen
 
-            // Globala elementreferenser
+            // Globala elementreferenser (Initialiseras nu i initializeAppComponents)
             let authStatus;
             let gameControlArea;
             let startSetupButton;
@@ -254,6 +254,9 @@
                 });
                 
                 document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
+                
+                // --- Kalla initieringen av Firebase ---
+                initApp();
             }
 
             // --- FIREBASE INITIALISERING OCH SIMULERAD AUTENTISERING ---
