@@ -162,31 +162,99 @@
             let playerIndex = -1; // Det här är viktigt: Spelarens index i playerIds-arrayen
 
             // Globala elementreferenser
-            // VIKTIGT: Dessa definieras NU INNAN FUNKTIONER ANROPAS
-            const authStatus = document.getElementById('auth-status');
-            const gameControlArea = document.getElementById('game-control-area');
-            const startSetupButton = document.getElementById('start-button'); // Knappen i SETUP-läget
-            const startNextRoundButton = document.getElementById('start-next-round-button'); // Knappen i GAME-läget
-            const joinGameCode = document.getElementById('join-game-code'); // BORTTAGEN i HTML, men behålls för att undvika JS-fel
-            const joinButton = document.getElementById('join-button'); // BORTTAGEN i HTML, men behålls för att undvika JS-fel
-            const gameCodeDisplay = document.getElementById('game-code-display');
-            const waitingForPlayer = document.getElementById('waiting-for-player');
-            const roundCounter = document.getElementById('round-counter');
-            const targetDisplay = document.getElementById('target-display');
-            const targetTimeText = document.getElementById('target-time');
-            const multiWaitButton = document.getElementById('multi-wait-button'); // Universell klickknapp
-            const resultArea = document.getElementById('result-area');
-            const roundWinnerStatus = document.getElementById('round-winner-status');
-            const totalScoreboard = document.getElementById('total-scoreboard'); // Nytt: För total poängtavla
-            const roundResultsDisplay = document.getElementById('round-results-display'); // Nytt: För resultat per omgång
-            const availableGamesList = document.getElementById('available-games-list'); // Referens för listan
-            const mainGameArea = document.getElementById('main-game-area'); // Måste definieras globalt
+            let authStatus;
+            let gameControlArea;
+            let startSetupButton;
+            let startNextRoundButton;
+            let gameCodeDisplay;
+            let waitingForPlayer;
+            let roundCounter;
+            let targetDisplay;
+            let targetTimeText;
+            let multiWaitButton;
+            let resultArea;
+            let roundWinnerStatus;
+            let totalScoreboard;
+            let roundResultsDisplay;
+            let availableGamesList;
+            let mainGameArea;
 
             // Per-omgång resultat element (behövs inte längre, renderas dynamiskt)
             
             // Spelets konstanter
             const MS_TO_S = 1000;
             const maxRounds = 3; 
+
+            // --- HJÄLPFUNKTIONER ---
+            
+            function initializeAppComponents() {
+                // Denna funktion körs EFTER DOMContentLoaded och GARANTERAR att alla element finns.
+                authStatus = document.getElementById('auth-status');
+                gameControlArea = document.getElementById('game-control-area');
+                startSetupButton = document.getElementById('start-button'); // Knappen i SETUP-läget
+                startNextRoundButton = document.getElementById('start-next-round-button'); // Knappen i GAME-läget
+                gameCodeDisplay = document.getElementById('game-code-display');
+                waitingForPlayer = document.getElementById('waiting-for-player');
+                roundCounter = document.getElementById('round-counter');
+                targetDisplay = document.getElementById('target-display');
+                targetTimeText = document.getElementById('target-time');
+                multiWaitButton = document.getElementById('multi-wait-button'); // Universell klickknapp
+                resultArea = document.getElementById('result-area');
+                roundWinnerStatus = document.getElementById('round-winner-status');
+                totalScoreboard = document.getElementById('total-scoreboard'); // Nytt: För total poängtavla
+                roundResultsDisplay = document.getElementById('round-results-display'); // Nytt: För resultat per omgång
+                availableGamesList = document.getElementById('available-games-list'); // Referens för listan
+                mainGameArea = document.getElementById('main-game-area'); // Måste definieras globalt
+
+                // Lägg till Event Listeners (nu när elementen är definierade)
+                startSetupButton.addEventListener('click', async () => {
+                    if (!gameId) { 
+                        await createNewGame();
+                    } else {
+                        alert("Ett spel är redan startat. Vänligen lämna matchen först.");
+                    }
+                });
+
+                startNextRoundButton.addEventListener('click', async () => {
+                    let gameData = null;
+                    if (!gameId) return; 
+
+                    const gameDoc = await getGameRef().get();
+                    if (gameDoc.exists) {
+                        gameData = gameDoc.data();
+                    }
+
+                    if (gameData && gameData.playerIds[0] === userId && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED' || gameData.status === 'SETUP')) {
+                        await startNextRoundOrMatch(gameData);
+                    }
+                });
+
+                multiWaitButton.addEventListener('click', async () => {
+                    if (playerIndex === -1) return;
+
+                    const gameDoc = await getGameRef().get();
+                    if (!gameDoc.exists) return;
+
+                    const gameData = gameDoc.data();
+                    
+                    if (gameData.status !== 'WAITING_FOR_CLICKS') return;
+
+                    const localStartTime = parseFloat(sessionStorage.getItem('gameStartTime') || 0);
+                    if (localStartTime === 0) {
+                        alert("Fel: Lokal starttid saknas. Prova att starta om omgången.");
+                        return;
+                    }
+                    
+                    const finalElapsedTime = performance.now() - localStartTime;
+
+                    multiWaitButton.textContent = 'Klickat...';
+                    multiWaitButton.disabled = true;
+
+                    await recordClickTime(gameData, finalElapsedTime);
+                });
+                
+                document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
+            }
 
             // --- FIREBASE INITIALISERING OCH SIMULERAD AUTENTISERING ---
 
@@ -687,7 +755,7 @@
                         
                         // Skapa kopior av listorna för uppdatering
                         let newClickTimes = [...currentData.clickTimes];
-                        let newTotalErrors = [...currentData.totalErrors];
+                        let newTotalErrors = [...currentData.currentData.totalErrors];
                         
                         // Uppdatera klick-tid för den aktuella spelaren
                         newClickTimes[playerClickIndex] = clickTimeMs;
