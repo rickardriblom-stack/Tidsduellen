@@ -224,12 +224,9 @@
                     // --- SIMULERAD INLOGGNING ---
                     authStatus.textContent = `Ditt Användar-ID: ${userId.substring(0, 8)}...`;
                     
-                    // FIX: Tvinga visning av SETUP-vyn direkt här
-                    gameControlArea.classList.remove('hidden');
-                    startSetupButton.disabled = false;
+                    // FIX: Anropa resetLocalState direkt efter initiering för att tvinga UI-visning
+                    resetLocalState();
                     
-                    // Starta lyssnare för aktiva spel direkt efter initiering
-                    listenForAvailableGames();
                     // --- SLUT SIMULERAD INLOGGNING ---
 
                 } catch (error) {
