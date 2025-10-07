@@ -755,7 +755,7 @@
                         
                         // Skapa kopior av listorna för uppdatering
                         let newClickTimes = [...currentData.clickTimes];
-                        let newTotalErrors = [...currentData.currentData.totalErrors];
+                        let newTotalErrors = [...currentData.totalErrors];
                         
                         // Uppdatera klick-tid för den aktuella spelaren
                         newClickTimes[playerClickIndex] = clickTimeMs;
@@ -856,10 +856,10 @@
                 if (unsubscribeAvailableGames) unsubscribeAvailableGames();
                 resetGameId();
                 sessionStorage.removeItem('gameStartTime');
-                mainGameArea.classList.add('hidden');
                 
                 // FIX: Tvinga visa gameControlArea här
                 gameControlArea.classList.remove('hidden'); 
+                mainGameArea.classList.add('hidden'); // Dölj spelvyn
                 
                 document.getElementById('app-title').classList.remove('hidden');
                 document.getElementById('app-description').classList.remove('hidden');
@@ -869,7 +869,6 @@
                 availableGamesList.innerHTML = '<p class="text-xs text-gray-400">Hämtar...</p>';
                 startSetupButton.disabled = false;
                 
-                // Anropa init för att starta om processen och hämta tillgängliga spel
                 // OBS: initApp anropas via window.onload, så vi behöver inte kalla den här.
             }
 
@@ -878,72 +877,23 @@
             document.addEventListener('DOMContentLoaded', function() {
                 try {
                     
-                    // Lyssna på knappen i SETUP-läge (Starta Nytt Spel)
-                    startSetupButton.addEventListener('click', async () => {
-                        if (!gameId) { 
-                            // 1. STARTA NYTT SPEL
-                            await createNewGame();
-                        } else {
-                            alert("Ett spel är redan startat. Vänligen lämna matchen först.");
-                        }
-                    });
-
-                    // Lyssna på knappen i GAME-läge (Starta Nästa Omgång)
-                    startNextRoundButton.addEventListener('click', async () => {
-                        // FIX: Hämta alltid senaste datan synkront för att undvika timingfel
-                        let gameData = null;
-                        
-                        if (!gameId) return; // Gör inget om inget spel är aktivt
-
-                        const gameDoc = await getGameRef().get();
-                        if (gameDoc.exists) {
-                            gameData = gameDoc.data();
-                        }
-
-                        if (gameData && gameData.playerIds[0] === userId && (gameData.status === 'ROUND_FINISHED' || gameData.status === 'MATCH_FINISHED' || gameData.status === 'SETUP')) {
-                            // STARTA NÄSTA OMGÅNG / ÅTERSTÄLL MATCH
-                            await startNextRoundOrMatch(gameData);
-                        }
-                        // Annars: knappen är inaktiverad eller rollen är fel, gör inget.
-                    });
-
-                    // BORTTAGEN: joinButton listener togs bort då knappen togs bort från HTML
-
-                    multiWaitButton.addEventListener('click', async () => {
-                        if (playerIndex === -1) return;
-
-                        const gameDoc = await getGameRef().get();
-                        if (!gameDoc.exists) return;
-
-                        const gameData = gameDoc.data();
-                        
-                        if (gameData.status !== 'WAITING_FOR_CLICKS') return;
-
-                        const localStartTime = parseFloat(sessionStorage.getItem('gameStartTime') || 0);
-                        if (localStartTime === 0) {
-                            alert("Fel: Lokal starttid saknas. Prova att starta om omgången.");
-                            return;
-                        }
-                        
-                        const finalElapsedTime = performance.now() - localStartTime;
-
-                        // Uppdatera endast den klickade knappens text visuellt tills databasen svarar
-                        multiWaitButton.textContent = 'Klickat...';
-                        multiWaitButton.disabled = true;
-
-                        await recordClickTime(gameData, finalElapsedTime);
-                    });
+                    // Steg 1: Initialisera alla globala DOM-referenser.
+                    initializeAppComponents();
                     
-                    document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
+                    // Steg 2: Alla event-lyssnare är nu definierade i initializeAppComponents()
+                    
+                    // Steg 3: Starta Firebase-processen.
+                    // initApp() anropas inuti initializeAppComponents()
 
                 } catch (e) {
+                    // Låt kraschen i initieringen loggas, men hindra inte resten av sidan
                     console.error("Initialization failed in main script block:", e);
                     authStatus.textContent = `KRITISKT FEL VID START: ${e.message || 'Okänt fel vid exekvering.'}`;
                 }
 
             });
             
-            // Den globala onload-funktionen som garanterar att allt är laddat
+            // Den globala onload-funktionen körs när allt är laddat
             window.onload = function() {
                 initApp();
             };
