@@ -254,9 +254,6 @@
                 });
                 
                 document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
-                
-                // --- Kalla initieringen av Firebase ---
-                initApp();
             }
 
             // --- FIREBASE INITIALISERING OCH SIMULERAD AUTENTISERING ---
@@ -589,7 +586,6 @@
             /** Visar slutresultatet. */
             function displayFinalWinner(gameData) {
                 const scores = gameData.playerIds.map((id, index) => ({
-                    playerNum: index + 1,
                     totalError: gameData.totalErrors[index] || 0
                 }));
                 scores.sort((a, b) => a.totalError - b.totalToError);
