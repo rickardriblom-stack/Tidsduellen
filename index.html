@@ -255,11 +255,11 @@
                 
                 document.querySelector('button[onclick="resetLocalState()"]').addEventListener('click', resetLocalState);
                 
-                // --- Kalla initieringen av Firebase ---
+                // --- Call Firebase initialization ---
                 initApp();
             }
 
-            // --- FIREBASE INITIALISERING OCH SIMULERAD AUTENTISERING ---
+            // --- FIREBASE INITIALIZATION AND SIMULATED AUTHENTICATION ---
 
             function getGameRef(id = gameId) {
                 if (!db || !db.collection) {
